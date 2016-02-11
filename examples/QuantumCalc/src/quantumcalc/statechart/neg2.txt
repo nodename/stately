@@ -1,0 +1,12 @@
+                                              {:start-states [:calc/op-entered]       ;; ADDED
+                                               :condition (fn [db [value]]            ;;
+                                                            (= value '-))             ;;
+                                               :target :calc/operand2                 ;;
+                                               :actions [[:operand2/minus-entered]]}  ;;
+
+
+
+
+           :operandX/minus-entered {:start-states [:operandX/start]                  ;; ADDED
+                                    :target       :operandX/int                      ;;
+                                    :actions      [[:operandX/update-value-action]]} ;;

@@ -1,0 +1,6 @@
+                                              {:start-states [:calc/operand2]                    ;; ADDED
+                                               :target :calc/op-entered                          ;;
+                                               :actions [[:calc/calculate-result-action]         ;;
+                                                         [:calc/copy-result-to-operand1-action]  ;;
+                                                         [:calc/replace-operator-action]         ;;
+                                                         [:operand2/clear-value-action]]}        ;;
