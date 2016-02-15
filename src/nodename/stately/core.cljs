@@ -75,8 +75,10 @@
 
 (defn active-state
   [fsm-name]
-  (let [active-states (:active @app-db)]
-    (first (filter #(= (namespace %) fsm-name) active-states))))
+  (warn "active-state: fsm-name: " fsm-name)
+  (when fsm-name
+    (let [active-states (:active @app-db)]
+      (first (filter #(= (namespace %) (name fsm-name)) active-states)))))
 
 
 (defn leaf-states
@@ -129,12 +131,16 @@
 
 (defn- super-dispatch
   [event-v]
+  (warn "super-dispatch: event-v: " event-v)
   (let [event-id (first-in-vector event-v)
-        fsm-name (namespace event-id)
+        trigger (second event-id)
+        fsm-name (namespace trigger)
         super-fsm-name (super (keyword fsm-name))]
+    (warn "super-fsm: " super-fsm-name)
     (when super-fsm-name
-      (let [new-event-id (transform-kw event-id fsm-name (name super-fsm-name))
-            new-event-v (vec (concat [new-event-id] (rest event-v)))]
+      (let [new-state (active-state super-fsm-name)
+            new-trigger (transform-kw trigger fsm-name (name super-fsm-name))
+            new-event-v (vec (concat [[new-state new-trigger]] (rest event-v)))]
         (dispatch new-event-v)))))
 
 
@@ -143,6 +149,7 @@
   "If a handler is registered for the event-id, call re-frame's dispatch;
   otherwise, move up the state hierarchy and try again"
   [event-v]
+  (warn "dispatch: event-v: " event-v)
   (if (nil? event-v)
     (re-frame.core/dispatch event-v) ;; let it fail as it should
     (let [event-id (first-in-vector event-v)
@@ -155,17 +162,20 @@
 ;; TODO this should become the default dispatch function
 (defn dispatch-to-leaves
   [event-v]
-  (let [leaf-fsms (map namespace (active-leaf-states))]
-    (doseq [leaf-fsm leaf-fsms]
-      (let [new-event-id (keyword leaf-fsm (name (first-in-vector event-v)))
-            new-event-v (vec (concat [new-event-id] (rest event-v)))]
+  (warn "leaves: event-v: " event-v)
+  (warn "active: " (active-leaf-states))
+  (let [leaf-states (active-leaf-states)]
+    (doseq [leaf-state leaf-states]
+      (let [leaf-fsm (namespace leaf-state)
+            new-event-id (keyword leaf-fsm (name (first-in-vector event-v)))
+            new-event-v (vec (concat [[leaf-state new-event-id]] (rest event-v)))]
         (dispatch new-event-v)))))
 
 
 (defn show-state-error
-  [trigger current-state]
+  [[_ trigger] current-state]
   (when (not= trigger :alert/on)
-    (dispatch [:alert/on {:title "State error"
-                          :body (str "Transition " trigger
-                                     " could not be performed from state "
-                                     current-state)}])))
+    (dispatch [[:alert/off :alert/on] {:title "State error"
+                                       :body (str "Transition " trigger
+                                                  " could not be performed from state "
+                                                  current-state)}])))

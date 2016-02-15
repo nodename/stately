@@ -7,12 +7,12 @@
 
           :activities  {}
 
-          :transitions {:alert/on    {:start-states [:alert/off]
-                                      :target       :alert/on
+          :transitions {[:alert/off :alert/on]
+                                     {:target       :alert/on
                                       :actions      [[:alert/show-action]]}
 
-                        :alert/off   {:start-states [:alert/on]
-                                      :target       :alert/off
+                        [:alert/on :alert/off]
+                                     {:target       :alert/off
                                       :actions      [[:alert/clear-message-action]]}}
 
           :start-state :alert/off

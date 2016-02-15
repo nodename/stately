@@ -1,4 +1,4 @@
-(ns quantumcalc.statechart.calc ;; BAK
+(ns quantumcalc.statechart.calc
   (:require [re-frame.utils :refer [log warn]]
             [nodename.stately.core :refer [clone-fsm dispatch]]
             [quantumcalc.statechart.calc-actions :refer [parse-button-press
@@ -17,11 +17,10 @@
                           (dispatch [:calc/clear-value-action])
                           db)}
 
-          :transitions {:app/cancel-entered
-                        {:start-states [:app/on]
-                         :target       :app/on
-                         :actions      [[:app/clear-inputs-action]
-                                        [:calc/clear-result-action]]}}
+          :transitions {:app/cancel-entered {:start-states [:app/on]
+                                             :target       :app/on
+                                             :actions      [[:app/clear-inputs-action]
+                                                            [:calc/clear-result-action]]}}
 
           :start-state :app/on
 

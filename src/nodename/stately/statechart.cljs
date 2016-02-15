@@ -5,10 +5,10 @@
             [com.rpl.specter :as s]
             [cljs.pprint :refer [pprint]]
             [nodename.stately.core :refer [dispatch
-                                         init-active
-                                         set-active active-state
-                                         set-state-tree
-                                         show-state-error]]))
+                                           init-active
+                                           set-active active-state
+                                           set-state-tree
+                                           show-state-error]]))
 
 
 
@@ -98,16 +98,16 @@
 
 (defn component->exit-action
   [component]
-  [(keyword (name component) "EXIT-TRANSITION")])
+  [[:any (keyword (name component) "EXIT-TRANSITION")]])
 
 (defn component->entry-action
   [component]
-  [(keyword (name component) "ENTRY-TRANSITION")])
+  [[:none (keyword (name component) "ENTRY-TRANSITION")]])
 
 
 (defn perform-transition
-  [db trigger transition current-state values all-states]
-  (warn "PERFORMING " trigger)
+  [db state-and-trigger transition current-state values all-states]
+  (warn "PERFORMING " state-and-trigger " current-state: " current-state)
   (let [{target :target
          actions :actions
          :or {actions []}} transition
@@ -154,59 +154,54 @@
 
     (when (and target
                (not= target :internal))
+      (warn "perform: completing target: " target)
       (complete-transition target target-state-data))
     db))
 
 
 (defn state-eligible?
-  [current-state start-states]
-  (or (and (= :none start-states)
+  [current-state start-state]
+  (println "current state:" current-state " start state: " start-state)
+  (or (and (= :none start-state)
            (or (blank? current-state) (= "none" (name current-state))))
-      (and (= :any start-states)
-           (not (blank? current-state)))
-      (and (vector? start-states)
-           (some #{current-state} start-states))))
+      (= :any start-state)
+      (= current-state start-state)))
 
 
 (defn make-transition-handler
   [all-states]
-  (fn [trigger transition]
-    (let [{branches :branches} transition
-          common-props (dissoc transition :branches)]
+  (fn [state-and-trigger transition]
+    (warn "MTH: state-and-trigger: " state-and-trigger)
 
-      (fn [db & [values]]
-        (let [current-state (active-state (namespace trigger))]
-          (warn "MTH: current-state: " current-state)
+    (fn [db & [values]]
+      (warn "state-and-trigger: " state-and-trigger)
+      (let [transition-state (first state-and-trigger)
+            trigger (second state-and-trigger)
+            fsm-name (or (namespace transition-state)
+                         (namespace trigger))
+            current-state (active-state fsm-name)]
+        (warn "MTH: transition-state: " transition-state " current-state: " current-state)
 
-          ;; Either the transition is simple or it has a set of branch transitions:
-          (let [transitions (or branches [transition])]
-            (loop [transitions transitions]
-              (if-let [transition (first transitions)]
-                (let [transition (merge common-props transition)
-                      start-states (get transition :start-states)
-                      eligible? (state-eligible? current-state start-states)
+        (let [eligible? (state-eligible? current-state transition-state)
 
-                      {condition :condition
-                       :or {condition (constantly true)}} transition]
-                  (warn "MTH: transition: " transition)
-                  (if (and eligible?
-                           (condition db values))
-                    (perform-transition db trigger transition
-                                        current-state values all-states)
-                    (recur (rest transitions))))
-
-                ;; no more transitions left to try:
-                (do
-                  (show-state-error trigger current-state)
-                  db)))))))))
+              {condition :condition
+               :or {condition (constantly true)}} transition]
+          (warn "MTH: transition: " transition)
+          (warn "MTH: eligible? " eligible?)
+          (if (and eligible?
+                   (condition db values))
+            (perform-transition db state-and-trigger transition
+                                current-state values all-states)
+            (do
+              #_(show-state-error state-and-trigger current-state)
+              db)))))))
 
 
 (defn add-entry-transition
   [acc start-state]
   (let [trigger (keyword (namespace start-state) "ENTRY-TRANSITION")
-        transition {:start-states :none
-                    :target start-state}]
-    (merge acc {trigger transition})))
+        transition {:target start-state}]
+    (merge acc {[:none trigger] transition})))
 
 (defn make-entry-transitions
   "Create a synthetic entry transition for each state machine
@@ -216,21 +211,22 @@
 
 (defn add-exit-transition
   [acc state-entry]
+  (warn "add-exit-transition: " state-entry)
   (let [state-data (second state-entry)
         components (get state-data :components)]
     (if components
       (let [triggers (map #(keyword (name %) "EXIT-TRANSITION") components)
-            transitions (map (fn [c] {:start-states :any
-                                      :target (keyword (name c) "none")}) components)
-            kvs (into {} (map (fn [trigger transition] [trigger transition])
+            transitions (map (fn [c] {:target (keyword (name c) "none")}) components)
+            kvs (into {} (map (fn [trigger transition] [[:any trigger] transition])
                               triggers transitions))]
+        (warn "add-exit-transition: kvs: " kvs)
         (merge acc kvs))
       acc)))
 
 (defn make-exit-transitions
   "Create a synthetic exit transition for each state machine
   that will nullify its current state
-  so that superstate exit can call this on its components
+  for superstate exit to invoke on its components
   (revisit when implementing history)"
   [all-states]
   (reduce add-exit-transition {} all-states))
@@ -238,12 +234,13 @@
 
 (defn register-transition-handlers
   [middleware {:keys [all-transitions all-states all-start-states]}]
+  (println "RTH")
   (let [make-transition-handler (make-transition-handler all-states)
         entry-transitions (make-entry-transitions all-start-states)
         exit-transitions (make-exit-transitions all-states)
         all-transitions (merge all-transitions entry-transitions exit-transitions)]
     (doseq [[trigger transition] all-transitions]
-      (let [transitions (if (vector? transition) transition [transition])
+      (let [transitions [transition]
             make-transition-handler #(make-transition-handler trigger %)
             handler (apply comp (map make-transition-handler transitions))]
         (register-handler trigger
