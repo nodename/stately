@@ -7,7 +7,7 @@
             [re-frame.core :as re-frame]))
 
 
-(defonce state-machines {:alert alert
+(defonce state-machines {;;:alert alert Alert out until bubbling from concurrent states is fixed
                          :app app
                          :calc calc
                          :operand1 operand1

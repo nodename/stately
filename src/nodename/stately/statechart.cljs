@@ -8,6 +8,8 @@
                                            init-active
                                            set-active active-state
                                            set-state-tree
+                                           active-components
+                                           lca-path
                                            show-state-error]]))
 
 
@@ -87,28 +89,42 @@
             " failed condition " condition)))
 
 
-(defn complete-transition
-  "This is available as an api function for transitions
-  whose target state was not known in advance,
-  for example when popping the navigator stack"
-  [new-state new-state-data]
-  (set-active new-state true)
-  (start-activities new-state-data))
-
-
-(defn component->exit-action
-  [component]
-  [[:any (keyword (name component) "EXIT-TRANSITION")]])
-
 (defn component->entry-action
   [component]
-  [[:none (keyword (name component) "ENTRY-TRANSITION")]])
+  [[(keyword (name component) "none") (keyword (name component) "ENTRY-TRANSITION")]])
+
+(defn stop-activity-actions
+  [state-data]
+  (map stop-action (:activities state-data)))
+
+(defn all-exit-actions
+  [state all-states]
+  (let [state-data (get all-states state)]
+    (concat (stop-activity-actions state-data)
+            (:exit-actions state-data))))
+
+(defn components-entry-actions
+  [state-data]
+  (map component->entry-action (get state-data :components)))
+
+(defn start-activity-actions
+  [state-data]
+  (map start-action (:activities state-data)))
+
+(defn all-entry-actions
+  [state all-states]
+  (let [state-data (get all-states state)]
+    (concat (:entry-actions state-data)
+            (components-entry-actions state-data)
+            (start-activity-actions state-data))))
 
 
 (defn perform-transition
   [db state-and-trigger transition current-state values all-states]
   (warn "PERFORMING " state-and-trigger " current-state: " current-state)
-  (let [{target :target
+  (let [[start-state trigger] state-and-trigger
+
+        {target :target
          actions :actions
          :or {actions []}} transition
 
@@ -116,34 +132,37 @@
         target (if (fn? target)
                  (target db values)
                  target)
+        _ (warn "target: " target)
 
-        current-state-data (get all-states current-state)
-        target-state-data (get all-states target)
 
-        current-state-stop-activity-actions (map stop-action (:activities current-state-data))
+        _ (warn "ACTIVE COMPONENTS:")
+        _ (warn (active-components current-state all-states))
 
-        current-state-exit-actions (get current-state-data :exit-actions)
+        ;; Unset states of all subcomponents of current-state, starting from the leaves:
+        ;; TODO stop their activities and do their exit actions too
+        ;; (revisit this when implementing history)
+        components (active-components current-state all-states)
+        _ (doseq [component components]
+            (let [st (active-state component)]
+              (set-active st false)))
 
-        current-state-components-exit-actions (map component->exit-action
-                                                   (get current-state-data :components))
 
-        target-state-entry-actions (get target-state-data :entry-actions)
+        [exit-path entry-path] (cond (= (name trigger) "ENTRY-TRANSITION") [(if current-state [current-state] []) [target]]
+                                     :else (lca-path current-state target))
+        _ (warn "exit-path: " exit-path " entry-path: " entry-path)
+        exit-path-actions (mapcat #(all-exit-actions % all-states) exit-path)
+        _ (warn "exit path actions: " exit-path-actions)
+        entry-path-actions (mapcat #(all-entry-actions % all-states) entry-path)
+        _ (warn "entry-path-actions: " entry-path-actions)
 
-        target-state-components-entry-actions (map component->entry-action
-                                                   (get target-state-data :components))
-
-        ;; include exit and entry actions:
         ;; atomic change of state: exit actions followed immediately by entry actions;
         ;; explicit actions take place in the context of the target state
-        actions (concat current-state-stop-activity-actions
-                        current-state-components-exit-actions
-                        current-state-exit-actions
-                        target-state-entry-actions
-                        target-state-components-entry-actions
+        actions (concat exit-path-actions
+                        entry-path-actions
                         actions)]
 
-    (when (not= target :internal)
-      (set-active current-state false))
+    (doseq [state exit-path]
+      (set-active state false))
 
     ;; each action gets my values appended after any explicit values it carries:
     (doseq [action actions]
@@ -152,17 +171,15 @@
                      action)]
         (dispatch action)))
 
-    (when (and target
-               (not= target :internal))
-      (warn "perform: completing target: " target)
-      (complete-transition target target-state-data))
+    (doseq [state entry-path]
+      (set-active state true))
     db))
 
 
 (defn state-eligible?
   [current-state start-state]
   (println "current state:" current-state " start state: " start-state)
-  (or (and (= :none start-state)
+  (or (and (= "none" (name start-state))
            (or (blank? current-state) (= "none" (name current-state))))
       (= :any start-state)
       (= current-state start-state)))
@@ -199,9 +216,10 @@
 
 (defn add-entry-transition
   [acc start-state]
-  (let [trigger (keyword (namespace start-state) "ENTRY-TRANSITION")
+  (let [fsm-name (namespace start-state)
+        trigger (keyword fsm-name "ENTRY-TRANSITION")
         transition {:target start-state}]
-    (merge acc {[:none trigger] transition})))
+    (merge acc {[(keyword fsm-name "none") trigger] transition})))
 
 (defn make-entry-transitions
   "Create a synthetic entry transition for each state machine
@@ -209,36 +227,13 @@
   [all-start-states]
   (reduce add-entry-transition {} all-start-states))
 
-(defn add-exit-transition
-  [acc state-entry]
-  (warn "add-exit-transition: " state-entry)
-  (let [state-data (second state-entry)
-        components (get state-data :components)]
-    (if components
-      (let [triggers (map #(keyword (name %) "EXIT-TRANSITION") components)
-            transitions (map (fn [c] {:target (keyword (name c) "none")}) components)
-            kvs (into {} (map (fn [trigger transition] [[:any trigger] transition])
-                              triggers transitions))]
-        (warn "add-exit-transition: kvs: " kvs)
-        (merge acc kvs))
-      acc)))
-
-(defn make-exit-transitions
-  "Create a synthetic exit transition for each state machine
-  that will nullify its current state
-  for superstate exit to invoke on its components
-  (revisit when implementing history)"
-  [all-states]
-  (reduce add-exit-transition {} all-states))
-
 
 (defn register-transition-handlers
   [middleware {:keys [all-transitions all-states all-start-states]}]
   (println "RTH")
   (let [make-transition-handler (make-transition-handler all-states)
         entry-transitions (make-entry-transitions all-start-states)
-        exit-transitions (make-exit-transitions all-states)
-        all-transitions (merge all-transitions entry-transitions exit-transitions)]
+        all-transitions (merge all-transitions entry-transitions)]
     (doseq [[trigger transition] all-transitions]
       (let [transitions [transition]
             make-transition-handler #(make-transition-handler trigger %)

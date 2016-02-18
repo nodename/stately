@@ -38,7 +38,7 @@
   prepend a zero to strings with leading dot"
   [s]
   (let [s (clojure.string/replace-first s #"0*" "")
-        s (clojure.string/replace-first s "^." "0.")]
+        s (clojure.string/replace-first s #"^\." "0.")]
     (cljs.reader/read-string s)))
 
 (defn calculate-result

@@ -42,7 +42,7 @@
 
 (defn ^:export init []
   (render-root!)
-  (dispatch [[:none :app/ENTRY-TRANSITION]])
+  (dispatch [[:app/none :app/ENTRY-TRANSITION]])
 
   (.addEventListener
     js/React.AppStateIOS "change"
