@@ -45,7 +45,7 @@
                         [:calc/op-entered :calc/digit-entered] {:target :operand2/int}
                         [:calc/op-entered :calc/dot-entered] {:target :operand2/frac}
 
-                        ;; insert neg2.txt here to enable a negative second operand
+                        ;; insert neg2.txt to enable a negative second operand
 
 
 
@@ -53,7 +53,7 @@
                                                                :actions [[:calc/calculate-result-action]
                                                                          [:app/clear-inputs-action]]}
 
-                        ;; insert xx.txt here to enable chaining like operand operator operand operator operand...
+                        ;; insert xx.txt to enable chaining, like operand operator operand operator operand...
 
 
 

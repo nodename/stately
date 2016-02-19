@@ -5,14 +5,13 @@
             [com.rpl.specter :as s]
             [cljs.pprint :refer [pprint]]
             [nodename.stately.core :refer [dispatch
-                                           init-active
+                                           init-active!
                                            set-active active-state
-                                           set-state-tree
+                                           set-state-tree!
+                                           set-parent-map!
                                            active-components
                                            lca-path
                                            show-state-error]]))
-
-
 
 
 
@@ -22,20 +21,20 @@
 
 (defn register-action-handlers
   [middleware {:keys [all-actions] :as chart-data}]
-  (let [all-actions (merge all-actions)]
-    (doseq [[trigger action] all-actions]
-      (register-handler trigger
-                        middleware
-                        (if (fn? action)
-                          action
-                          ;; vector: fn and args:
-                          (fn [db values]
-                            ((first action)
-                              db (concat (rest action) values))))))))
+  (doseq [[trigger action] all-actions]
+    (let [handler (if (fn? action)
+                    action
+                    ;; vector: fn and args:
+                    (fn [db values]
+                      ((first action)
+                        db (concat (rest action) values))))]
+      (register-handler trigger middleware handler))))
 
 
 
 ;; ACTIVITIES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
 
 (defn- start-action
   "Create an action keyword for starting an activity"
@@ -58,15 +57,15 @@
         (let [{start :start
                stop :stop} (get all-activities activity)]
           (when start
-            (let [action (start-action activity)]
-              (register-handler action
+            (let [trigger (start-action activity)]
+              (register-handler trigger
                                 middleware
                                 (fn [db]
                                   (dispatch start)
                                   db))))
           (when stop
-            (let [action (stop-action activity)]
-              (register-handler action
+            (let [trigger (stop-action activity)]
+              (register-handler trigger
                                 middleware
                                 (fn [db]
                                   (dispatch stop)
@@ -75,6 +74,7 @@
 
 
 ;; TRANSITIONS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 
 (defn start-activities
@@ -181,7 +181,6 @@
   (println "current state:" current-state " start state: " start-state)
   (or (and (= "none" (name start-state))
            (or (blank? current-state) (= "none" (name current-state))))
-      (= :any start-state)
       (= current-state start-state)))
 
 
@@ -278,8 +277,9 @@
                     :all-states all-states
                     :all-start-states all-start-states}]
 
-    (set-state-tree state-machines)
-    (init-active)
+    (set-state-tree! state-machines)
+    (set-parent-map!)
+    (init-active!)
 
     (register-action-handlers middleware chart-data)
     (register-activity-handlers middleware chart-data)

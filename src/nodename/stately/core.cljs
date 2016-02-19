@@ -8,33 +8,66 @@
             [re-frame.utils :refer [log warn error first-in-vector]]))
 
 
-(defn init-active
+(defn init-active!
   []
   (swap! app-db assoc :active #{}))
 
 (defn state-tree
   [state-machines root-fsm-key]
-  (let [component-keys (fn [state-key fsm]
+  (let [;; component-keys: return the components of the state `state-key` in `fsm`
+        component-keys (fn [state-key fsm]
                          (let [state (get (:states fsm) state-key)]
                            (:components state)))
+
         component-state-trees (fn [state-key fsm]
                                 (mapv #(state-tree state-machines %)
                                       (component-keys state-key fsm)))
+
         key-and-components (fn [state-key fsm]
                              {state-key (apply merge (component-state-trees state-key fsm))})
+
         root-fsm (get state-machines root-fsm-key)
         root-fsm-states (:states root-fsm)]
     {root-fsm-key (apply merge (map #(key-and-components % root-fsm)
                                     (keys root-fsm-states)))}))
 
 
-(defn set-state-tree
+(defn set-state-tree!
   [state-machines]
   (swap! app-db assoc :tree (state-tree state-machines :app)))
 
 (defn tree
   []
   (:tree @app-db))
+
+
+
+(defn parent-links
+  [m root-key]
+  (let [ks (keys m)
+        kvs (interleave ks (repeat root-key))
+        trees (map #(get m %) ks)
+        sub-kvs (map #(parent-links %1 %2) trees ks)]
+    (concat kvs sub-kvs)))
+
+(defn make-parent-map
+  []
+  (let [kvs (parent-links (tree) nil)]
+    (apply assoc {} (flatten kvs))))
+
+(defn set-parent-map!
+  []
+  (swap! app-db assoc :parents (make-parent-map)))
+
+(defn super
+  "Given a state-key, return its superstate;
+  given an fsm-key, return its super-fsm"
+  [k]
+  (let [parent-map (:parents @app-db)
+        p (get parent-map k)]
+    (get parent-map p)))
+
+
 
 (defn- set-active
   [state-key yesno]
@@ -48,30 +81,6 @@
   []
   (remove #(= (name %) "none") (get @app-db :active)))
 
-
-(defn- parent
-  "Find the parent of child-key in tree"
-  ([tree child-key]
-   (parent nil tree child-key))
-  ([ancestor-key tree child-key]
-   (let [children (keys tree)]
-     (let [key-in-children? ((set children) child-key)]
-       (if key-in-children?
-         ancestor-key
-         (loop [children children]
-           (when-let [child (first children)]
-             (let [subtree (get tree child)]
-               (if-let [superstate (parent child subtree child-key)]
-                 superstate
-                 (recur (rest children)))))))))))
-
-(defn super
-  "Given a state-key, return its superstate;
-  given an fsm-key, return its super-fsm"
-  [k]
-  (let [m (:tree @app-db)
-        p (parent m k)]
-    (parent m p)))
 
 
 
@@ -115,8 +124,8 @@
 (defn active-state
   [fsm-name]
   (when fsm-name
-    (let [active-states (:active @app-db)]
-      (first (filter #(= (namespace %) (name fsm-name)) active-states)))))
+    (let [all-active-states (:active @app-db)]
+      (first (filter #(= (namespace %) (name fsm-name)) all-active-states)))))
 
 
 (defn- leaf-states*
@@ -135,7 +144,7 @@
 
 (defn leaf-states
   []
-  (leaf-states* (:tree @app-db)))
+  (leaf-states* (tree)))
 
 (defn active-leaf-states
   []
