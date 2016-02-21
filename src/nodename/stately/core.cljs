@@ -32,32 +32,31 @@
                                     (keys root-fsm-states)))}))
 
 
-(defn set-state-tree!
-  [state-machines]
-  (swap! app-db assoc :tree (state-tree state-machines :app)))
-
-(defn tree
-  []
-  (:tree @app-db))
-
-
-
 (defn parent-links
   [m root-key]
   (let [ks (keys m)
         kvs (interleave ks (repeat root-key))
         trees (map #(get m %) ks)
         sub-kvs (map #(parent-links %1 %2) trees ks)]
-    (concat kvs sub-kvs)))
+    (flatten (concat kvs sub-kvs))))
 
-(defn make-parent-map
-  []
-  (let [kvs (parent-links (tree) nil)]
-    (apply assoc {} (flatten kvs))))
+(defn parent-map
+  [tree]
+  (let [kvs (parent-links tree nil)]
+    (apply assoc {} kvs)))
 
-(defn set-parent-map!
+(defn set-state-tree!
+  [state-machines]
+  (let [tree (state-tree state-machines :app)
+        parents (parent-map tree)]
+    (swap! app-db assoc
+           :tree tree
+           :parents parents)))
+
+(defn tree
   []
-  (swap! app-db assoc :parents (make-parent-map)))
+  (:tree @app-db))
+
 
 (defn super
   "Given a state-key, return its superstate;
@@ -87,16 +86,12 @@
 ;; LEAST COMMON ANCESTOR ;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+
 (defn path-to-root
   [state-kw]
   (if (nil? state-kw)
     []
-    (loop [path [state-kw]
-           state state-kw]
-      (if-let [parent (super state)]
-        (recur (concat path [parent])
-               parent)
-        path))))
+    (concat [state-kw] (path-to-root (super state-kw)))))
 
 
 (defn lca-path
@@ -152,14 +147,13 @@
 
 
 
-(defn active-components
+(defn active-subcomponents
   "all active subcomponents of a state, leaves first"
   [state all-states]
   (let [state-data (get all-states state)
         components (:components state-data)
         active-substates (map active-state components)
-        _ (warn "active-components: active substates: " active-substates)
-        subcomponents (map #(active-components % all-states) active-substates)]
+        subcomponents (map #(active-subcomponents % all-states) active-substates)]
     (flatten (concat subcomponents components))))
 
 
@@ -191,21 +185,17 @@
 ;; DISPATCH ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(declare dispatch)
 
-(defn- super-dispatch
+(defn- super-event-v
   [event-v]
-  #_(warn "super-dispatch: event-v: " event-v)
   (let [event-id (first-in-vector event-v)
         trigger (second event-id)
         fsm-name (namespace trigger)
         super-fsm-name (super (keyword fsm-name))]
-    #_(warn "super-fsm: " super-fsm-name)
     (when super-fsm-name
       (let [new-state (active-state super-fsm-name)
-            new-trigger (transform-kw trigger fsm-name (name super-fsm-name))
-            new-event-v (vec (concat [[new-state new-trigger]] (rest event-v)))]
-        (dispatch new-event-v)))))
+            new-trigger (transform-kw trigger fsm-name (name super-fsm-name))]
+        (vec (concat [[new-state new-trigger]] (rest event-v)))))))
 
 
 (defn synthetic?
@@ -219,21 +209,20 @@
   "If a handler is registered for the event-id, call re-frame's dispatch;
   otherwise, move up the state hierarchy and try again"
   [event-v]
-  (warn "dispatch? " event-v)
-  (if (nil? event-v)
-    (re-frame.core/dispatch event-v) ;; let it fail as it should
-    (let [event-id (first-in-vector event-v)
-          handler-fn (lookup-handler event-id)]
-      #_(warn "Q: " (peek (.-queue event-queue)))
-      (if (nil? handler-fn)
-        (if (synthetic? event-v)
-          ;; don't propagate synthetic transition:
-          (warn "synthetic transition not registered")
-          (super-dispatch event-v))
-        (do
-          (warn "active states: " (active-states))
-          (warn "dispatching: " event-v)
-          (re-frame.core/dispatch event-v))))))
+  (loop [event-v event-v]
+    (warn "dispatch? " event-v)
+    (if (nil? event-v)
+      (warn "no handler found for event")
+      (let [handler-fn (lookup-handler (first-in-vector event-v))]
+        (if (nil? handler-fn)
+          (if (synthetic? event-v)
+            ;; don't propagate synthetic transition:
+            (warn "synthetic transition not registered")
+            (recur (super-event-v event-v)))
+          (do
+            (warn "active states: " (active-states))
+            (warn "dispatching: " event-v)
+            (re-frame.core/dispatch event-v)))))))
 
 
 ;; TODO this should become the default dispatch function

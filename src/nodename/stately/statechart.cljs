@@ -8,8 +8,7 @@
                                            init-active!
                                            set-active active-state
                                            set-state-tree!
-                                           set-parent-map!
-                                           active-components
+                                           active-subcomponents
                                            lca-path
                                            show-state-error]]))
 
@@ -77,21 +76,12 @@
 
 
 
-(defn start-activities
-  [state-data]
-  (doseq [activity (:activities state-data)]
-    (dispatch [(start-action activity)])))
-
 (defn show-condition-not-met
   [trigger current-state condition]
   (log (str "Transition " trigger
             " in state " current-state
             " failed condition " condition)))
 
-
-(defn component->entry-action
-  [component]
-  [[(keyword (name component) "none") (keyword (name component) "ENTRY-TRANSITION")]])
 
 (defn stop-activity-actions
   [state-data]
@@ -102,6 +92,11 @@
   (let [state-data (get all-states state)]
     (concat (stop-activity-actions state-data)
             (:exit-actions state-data))))
+
+
+(defn component->entry-action
+  [component]
+  [[(keyword (name component) "none") (keyword (name component) "ENTRY-TRANSITION")]])
 
 (defn components-entry-actions
   [state-data]
@@ -119,10 +114,24 @@
             (start-activity-actions state-data))))
 
 
+(defn exit-all-substates
+  "Exit active states of all subcomponents of current-state, starting from the leaves
+  (stop their activities and do their exit actions first)
+  (revisit this when implementing history)"
+  [current-state all-states]
+  (let [subcomponents (active-subcomponents current-state all-states)]
+    (doseq [component subcomponents]
+      (let [substate (active-state component)
+            exit-actions (all-exit-actions substate all-states)]
+        (doseq [action exit-actions]
+          (dispatch action)) ;; TODO execute directly rather than dispatching
+        (set-active substate false)))))
+
+
 (defn perform-transition
   [db state-and-trigger transition current-state values all-states]
   (warn "PERFORMING " state-and-trigger " current-state: " current-state)
-  (let [[start-state trigger] state-and-trigger
+  (let [[_ trigger] state-and-trigger
 
         {target :target
          actions :actions
@@ -134,42 +143,32 @@
                  target)
         _ (warn "target: " target)
 
-
-        _ (warn "ACTIVE COMPONENTS:")
-        _ (warn (active-components current-state all-states))
-
-        ;; Unset states of all subcomponents of current-state, starting from the leaves:
-        ;; TODO stop their activities and do their exit actions too
-        ;; (revisit this when implementing history)
-        components (active-components current-state all-states)
-        _ (doseq [component components]
-            (let [st (active-state component)]
-              (set-active st false)))
-
-
-        [exit-path entry-path] (cond (= (name trigger) "ENTRY-TRANSITION") [(if current-state [current-state] []) [target]]
+        [exit-path entry-path] (cond (= (name trigger) "ENTRY-TRANSITION")
+                                     [(if current-state [current-state] []) [target]]
                                      :else (lca-path current-state target))
         _ (warn "exit-path: " exit-path " entry-path: " entry-path)
         exit-path-actions (mapcat #(all-exit-actions % all-states) exit-path)
-        _ (warn "exit path actions: " exit-path-actions)
         entry-path-actions (mapcat #(all-entry-actions % all-states) entry-path)
-        _ (warn "entry-path-actions: " entry-path-actions)
 
         ;; atomic change of state: exit actions followed immediately by entry actions;
         ;; explicit actions take place in the context of the target state
+        ;; (unlike in the UML standard)
         actions (concat exit-path-actions
                         entry-path-actions
-                        actions)]
+                        actions)
+
+        ;; each action gets my values appended after any explicit values it carries:
+        actions (map #(if values
+                       (vec (concat % values))
+                       %) actions)]
+
+    (exit-all-substates current-state all-states)
 
     (doseq [state exit-path]
       (set-active state false))
 
-    ;; each action gets my values appended after any explicit values it carries:
     (doseq [action actions]
-      (let [action (if values
-                     (vec (concat action values))
-                     action)]
-        (dispatch action)))
+      (dispatch action)) ;; TODO execute directly though
 
     (doseq [state entry-path]
       (set-active state true))
@@ -191,8 +190,7 @@
 
     (fn [db & [values]]
       (warn "state-and-trigger: " state-and-trigger)
-      (let [transition-state (first state-and-trigger)
-            trigger (second state-and-trigger)
+      (let [[transition-state trigger] state-and-trigger
             fsm-name (or (namespace transition-state)
                          (namespace trigger))
             current-state (active-state fsm-name)]
@@ -278,7 +276,6 @@
                     :all-start-states all-start-states}]
 
     (set-state-tree! state-machines)
-    (set-parent-map!)
     (init-active!)
 
     (register-action-handlers middleware chart-data)
