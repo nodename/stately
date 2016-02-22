@@ -1,5 +1,5 @@
-                        [:calc/operand2 :calc/operator-entered] {:target :calc/op-entered                          ;; xx
-                                                                 :actions [[:calc/calculate-result-action]         ;;
-                                                                           [:calc/copy-result-to-operand1-action]  ;;
-                                                                           [:calc/replace-operator-action]         ;;
-                                                                           [:operand2/clear-value-action]]}        ;;
+                        [:calc/operand2 :operator-entered] {:target :calc/op-entered                          ;; xx
+                                                            :actions [[:calc/calculate-result-action]         ;;
+                                                                      [:calc/copy-result-to-operand1-action]  ;;
+                                                                      [:calc/replace-operator-action]         ;;
+                                                                      [:operand2/clear-value-action]]}        ;;

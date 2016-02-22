@@ -16,9 +16,9 @@
                                                    (dispatch [:calc/clear-value-action])
                                                    db)}
 
-          :transitions {[:app/on :app/cancel-entered] {:target :app/on
-                                                       :actions [[:app/clear-inputs-action]
-                                                                 [:calc/clear-result-action]]}}
+          :transitions {[:app/on :cancel-entered] {:target :app/on
+                                                   :actions [[:app/clear-inputs-action]
+                                                             [:calc/clear-result-action]]}}
 
           :start-state :app/on
 
@@ -32,37 +32,37 @@
                     :calc/clear-result-action            clear-result
                     :calc/copy-result-to-operand1-action copy-result-to-operand1}
 
-          :transitions {[:calc/start :calc/zero-entered] {:target :operand1/zero}
-                        [:calc/start :calc/digit-entered] {:target :operand1/int}
-                        [:calc/start :calc/dot-entered] {:target :operand1/frac}
+          :transitions {[:calc/start :zero-entered] {:target :operand1/zero}
+                        [:calc/start :digit-entered] {:target :operand1/int}
+                        [:calc/start :dot-entered] {:target :operand1/frac}
 
 
-                        [:calc/operand1 :calc/operator-entered] {:target :calc/op-entered
-                                                                 :actions [[:calc/replace-operator-action]]}
+                        [:calc/operand1 :operator-entered] {:target :calc/op-entered
+                                                            :actions [[:calc/replace-operator-action]]}
 
 
-                        [:calc/op-entered :calc/zero-entered] {:target :operand2/zero}
-                        [:calc/op-entered :calc/digit-entered] {:target :operand2/int}
-                        [:calc/op-entered :calc/dot-entered] {:target :operand2/frac}
+                        [:calc/op-entered :zero-entered] {:target :operand2/zero}
+                        [:calc/op-entered :digit-entered] {:target :operand2/int}
+                        [:calc/op-entered :dot-entered] {:target :operand2/frac}
 
                         ;; insert neg2.txt to enable a negative second operand
 
 
 
-                        [:calc/operand2 :calc/equals-entered] {:target  :calc/result
-                                                               :actions [[:calc/calculate-result-action]
-                                                                         [:app/clear-inputs-action]]}
+                        [:calc/operand2 :equals-entered] {:target  :calc/result
+                                                          :actions [[:calc/calculate-result-action]
+                                                                    [:app/clear-inputs-action]]}
 
                         ;; insert xx.txt to enable chaining, like operand operator operand operator operand...
 
 
 
-                        [:calc/result :calc/zero-entered] {:target :operand1/zero}
-                        [:calc/result :calc/digit-entered] {:target :operand1/int}
-                        [:calc/result :calc/dot-entered] {:target :operand1/frac}
-                        [:calc/result :calc/operator-entered] {:target :calc/op-entered
-                                                               :actions   [[:calc/copy-result-to-operand1-action]
-                                                                           [:calc/replace-operator-action]]}}
+                        [:calc/result :zero-entered] {:target :operand1/zero}
+                        [:calc/result :digit-entered] {:target :operand1/int}
+                        [:calc/result :dot-entered] {:target :operand1/frac}
+                        [:calc/result :operator-entered] {:target :calc/op-entered
+                                                          :actions   [[:calc/copy-result-to-operand1-action]
+                                                                      [:calc/replace-operator-action]]}}
 
           :start-state :calc/start
 
@@ -79,20 +79,20 @@
            :operandX/clear-value-action  [clear-value :operandX/value]}
 
           :transitions
-          {[:operandX/zero :operandX/zero-entered] {:target :internal}
-           [:operandX/zero :operandX/dot-entered] {:target :operandX/frac}
-           [:operandX/zero :operandX/digit-entered] {:target :operandX/int}
+          {[:operandX/zero :zero-entered] {:target :internal}
+           [:operandX/zero :dot-entered] {:target :operandX/frac}
+           [:operandX/zero :digit-entered] {:target :operandX/int}
 
-           [:operandX/int :operandX/zero-entered] {:target :internal
-                                                   :actions [[:operandX/update-value-action]]}
-           [:operandX/int :operandX/dot-entered] {:target :operandX/frac}
-           [:operandX/int :operandX/digit-entered] {:target :internal
-                                                    :actions [[:operandX/update-value-action]]}
+           [:operandX/int :zero-entered] {:target :internal
+                                          :actions [[:operandX/update-value-action]]}
+           [:operandX/int :dot-entered] {:target :operandX/frac}
+           [:operandX/int :digit-entered] {:target :internal
+                                           :actions [[:operandX/update-value-action]]}
 
-           [:operandX/frac :operandX/zero-entered] {:target :internal
-                                                    :actions [[:operandX/update-value-action]]}
-           [:operandX/frac :operandX/digit-entered] {:target :internal
-                                                     :actions [[:operandX/update-value-action]]}}
+           [:operandX/frac :zero-entered] {:target :internal
+                                           :actions [[:operandX/update-value-action]]}
+           [:operandX/frac :digit-entered] {:target :internal
+                                            :actions [[:operandX/update-value-action]]}}
 
           :states
           {:operandX/zero  {:entry-actions [[:operandX/update-value-action]]}

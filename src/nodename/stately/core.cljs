@@ -178,13 +178,13 @@
 (defn- super-event-v
   [event-v]
   (let [event-id (first-in-vector event-v)
+        state (first event-id)
         trigger (second event-id)
-        fsm-name (namespace trigger)
+        fsm-name (namespace state)
         super-fsm-name (super (keyword fsm-name))]
     (when super-fsm-name
-      (let [new-state (active-state super-fsm-name)
-            new-trigger (transform-kw trigger fsm-name (name super-fsm-name))]
-        (vec (concat [[new-state new-trigger]] (rest event-v)))))))
+      (let [new-state (active-state super-fsm-name)]
+        (vec (concat [[new-state trigger]] (rest event-v)))))))
 
 
 ;; TODO don't propagate up from multiple orthogonal components
@@ -212,8 +212,7 @@
   (warn "active: " (active-leaf-states))
   (let [leaf-states (active-leaf-states)]
     (doseq [leaf-state leaf-states]
-      (let [leaf-fsm (namespace leaf-state)
-            new-event-id (keyword leaf-fsm (name (first-in-vector event-v)))
-            new-event-v (vec (concat [[leaf-state new-event-id]] (rest event-v)))]
+      (let [event-id (first-in-vector event-v)
+            new-event-v (vec (concat [[leaf-state event-id]] (rest event-v)))]
         (dispatch new-event-v)))))
 
