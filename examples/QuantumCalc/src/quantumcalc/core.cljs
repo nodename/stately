@@ -3,7 +3,7 @@
 (ns quantumcalc.core
   (:require [reagent.core :as reagent]
             [re-frame.utils :refer [log warn]]
-            [nodename.stately.core :refer [dispatch]]
+            [nodename.stately.statechart :refer [start-app]]
             [quantumcalc.ui.calc :refer [calc-screen]]
             [quantumcalc.statechart.main :refer [register-handlers]]))
 
@@ -42,7 +42,7 @@
 
 (defn ^:export init []
   (render-root!)
-  (dispatch [[:app/none :app/ENTRY-TRANSITION]])
+  (start-app)
 
   (.addEventListener
     js/React.AppStateIOS "change"

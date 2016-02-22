@@ -8,9 +8,7 @@
                                            init-active!
                                            set-active active-state
                                            set-state-tree!
-                                           active-subcomponents
-                                           lca-path
-                                           show-state-error]]))
+                                           lca-path]]))
 
 
 
@@ -83,6 +81,19 @@
             " failed condition " condition)))
 
 
+;;; EXIT ;;;
+
+
+(defn active-subcomponents
+  "all active subcomponents of a state, leaves first"
+  [state all-states]
+  (let [state-data (get all-states state)
+        components (:components state-data)
+        active-substates (map active-state components)
+        subcomponents (map #(active-subcomponents % all-states) active-substates)]
+    (flatten (concat subcomponents components))))
+
+
 (defn stop-activity-actions
   [state-data]
   (map stop-action (:activities state-data)))
@@ -93,151 +104,124 @@
     (concat (stop-activity-actions state-data)
             (:exit-actions state-data))))
 
-
-(defn component->entry-action
-  [component]
-  [[(keyword (name component) "none") (keyword (name component) "ENTRY-TRANSITION")]])
-
-(defn components-entry-actions
+(defn stop-activities
   [state-data]
-  (map component->entry-action (get state-data :components)))
+  (let [actions (stop-activity-actions state-data)]
+    (doseq [action actions]
+      (dispatch action)))) ;; TODO invoke directly
+
+(defn perform-exit-actions
+  [state-data]
+  (let [actions (:exit-actions state-data)]
+    (doseq [action actions]
+      (dispatch action)))) ;; TODO invoke directly
+
+(declare exit-state)
+
+(defn exit-all-substates
+  "Exit active states of all subcomponents of state, starting from the leaves"
+  [state all-states]
+  (let [subcomponents (active-subcomponents state all-states)]
+    (doseq [component subcomponents]
+      (let [substate (active-state component)]
+        (exit-state substate all-states)))))
+
+(defn exit-state
+  [state all-states]
+  (let [state-data (get all-states state)]
+    (exit-all-substates state all-states)
+    (stop-activities state-data)
+    (perform-exit-actions state)
+    (set-active state false)))
+
+
+;;; ENTER ;;;
+
 
 (defn start-activity-actions
   [state-data]
   (map start-action (:activities state-data)))
 
-(defn all-entry-actions
-  [state all-states]
-  (let [state-data (get all-states state)]
-    (concat (:entry-actions state-data)
-            (components-entry-actions state-data)
-            (start-activity-actions state-data))))
-
-
-(defn exit-all-substates
-  "Exit active states of all subcomponents of current-state, starting from the leaves
-  (stop their activities and do their exit actions first)
-  (revisit this when implementing history)"
-  [current-state all-states]
-  (let [subcomponents (active-subcomponents current-state all-states)]
-    (doseq [component subcomponents]
-      (let [substate (active-state component)
-            exit-actions (all-exit-actions substate all-states)]
-        (doseq [action exit-actions]
-          (dispatch action)) ;; TODO execute directly rather than dispatching
-        (set-active substate false)))))
-
-
-(defn perform-transition
-  [db state-and-trigger transition current-state values all-states]
-  (warn "PERFORMING " state-and-trigger " current-state: " current-state)
-  (let [[_ trigger] state-and-trigger
-
-        {target :target
-         actions :actions
-         :or {actions []}} transition
-
-        ;; handle target that is a function:
-        target (if (fn? target)
-                 (target db values)
-                 target)
-        _ (warn "target: " target)
-
-        [exit-path entry-path] (cond (= (name trigger) "ENTRY-TRANSITION")
-                                     [(if current-state [current-state] []) [target]]
-                                     :else (lca-path current-state target))
-        _ (warn "exit-path: " exit-path " entry-path: " entry-path)
-        exit-path-actions (mapcat #(all-exit-actions % all-states) exit-path)
-        entry-path-actions (mapcat #(all-entry-actions % all-states) entry-path)
-
-        ;; atomic change of state: exit actions followed immediately by entry actions;
-        ;; explicit actions take place in the context of the target state
-        ;; (unlike in the UML standard)
-        actions (concat exit-path-actions
-                        entry-path-actions
-                        actions)
-
-        ;; each action gets my values appended after any explicit values it carries:
-        actions (map #(if values
-                       (vec (concat % values))
-                       %) actions)]
-
-    (exit-all-substates current-state all-states)
-
-    (doseq [state exit-path]
-      (set-active state false))
-
+(defn perform-entry-actions
+  [state-data values]
+  (let [actions (:entry-actions state-data)]
     (doseq [action actions]
-      (dispatch action)) ;; TODO execute directly though
+      (dispatch (vec (concat action values)))))) ;; TODO invoke directly
 
-    (doseq [state entry-path]
-      (set-active state true))
-    db))
+(defn start-activities
+  [state-data]
+  (let [actions (start-activity-actions state-data)]
+    (doseq [action actions]
+      (dispatch action)))) ;; TODO invoke directly
 
+(declare enter-state)
 
-(defn state-eligible?
-  [current-state start-state]
-  (println "current state:" current-state " start state: " start-state)
-  (or (and (= "none" (name start-state))
-           (or (blank? current-state) (= "none" (name current-state))))
-      (= current-state start-state)))
+(defn enter-components-start-states
+  [state {:keys [all-states all-start-states] :as chart-data}]
+  (let [state-data (get all-states state)
+        components (get state-data :components)]
+    (doseq [component components]
+      (when-let [start-state (some #(when (= (namespace %) (name component)) %) all-start-states)]
+        (enter-state start-state [] chart-data)))))
+
+(defn enter-state
+  [state values {:keys [all-states] :as chart-data}]
+  (let [state-data (get all-states state)]
+    (set-active state true)
+    (perform-entry-actions state-data values)
+    (start-activities state-data)
+    (enter-components-start-states state chart-data)))
 
 
 (defn make-transition-handler
-  [all-states]
-  (fn [state-and-trigger transition]
-    (warn "MTH: state-and-trigger: " state-and-trigger)
+  [state-and-trigger transition {:keys [all-states] :as chart-data}]
+  (fn handler [db & [values]]
+    (warn "state-and-trigger: " state-and-trigger)
+    (let [[transition-state _] state-and-trigger
+          fsm-name (namespace transition-state)
+          current-state (active-state fsm-name)]
+      (let [{condition :condition
+             :or {condition (constantly true)}} transition]
+        (if-not (condition db values)
+          (show-condition-not-met state-and-trigger current-state condition)
+          (let [{target :target
+                 actions :actions
+                 :or {actions []}} transition
 
-    (fn [db & [values]]
-      (warn "state-and-trigger: " state-and-trigger)
-      (let [[transition-state trigger] state-and-trigger
-            fsm-name (or (namespace transition-state)
-                         (namespace trigger))
-            current-state (active-state fsm-name)]
-        (warn "MTH: transition-state: " transition-state " current-state: " current-state)
+                ;; handle target that is a function:
+                target (if (fn? target)
+                         (target db values)
+                         target)
+                _ (warn "target: " target)
 
-        (let [eligible? (state-eligible? current-state transition-state)
+                [exit-path entry-path] (lca-path current-state target)
+                _ (warn "exit-path: " exit-path " entry-path: " entry-path)
 
-              {condition :condition
-               :or {condition (constantly true)}} transition]
-          (warn "MTH: transition: " transition)
-          (warn "MTH: eligible? " eligible?)
-          (if (and eligible?
-                   (condition db values))
-            (perform-transition db state-and-trigger transition
-                                current-state values all-states)
-            (do
-              #_(show-state-error state-and-trigger current-state)
-              db)))))))
+                ;; each action gets my values appended after any explicit values it carries:
+                actions (map #(if values
+                               (vec (concat % values))
+                               %) actions)]
 
+            ;; exiting the last state will take care of any preceding states in exit-path:
+            (exit-state (last exit-path) all-states)
 
-(defn add-entry-transition
-  [acc start-state]
-  (let [fsm-name (namespace start-state)
-        trigger (keyword fsm-name "ENTRY-TRANSITION")
-        transition {:target start-state}]
-    (merge acc {[(keyword fsm-name "none") trigger] transition})))
+            (doseq [state entry-path]
+              (enter-state state values chart-data))
 
-(defn make-entry-transitions
-  "Create a synthetic entry transition for each state machine
-  that will cause it to go into its declared start-state"
-  [all-start-states]
-  (reduce add-entry-transition {} all-start-states))
+            ;; Unlike in the UML spec, actions are invoked in the context of the target state:
+            (doseq [action actions]
+              (dispatch action))))
+        db))))
+
 
 
 (defn register-transition-handlers
-  [middleware {:keys [all-transitions all-states all-start-states]}]
-  (println "RTH")
-  (let [make-transition-handler (make-transition-handler all-states)
-        entry-transitions (make-entry-transitions all-start-states)
-        all-transitions (merge all-transitions entry-transitions)]
-    (doseq [[trigger transition] all-transitions]
-      (let [transitions [transition]
-            make-transition-handler #(make-transition-handler trigger %)
-            handler (apply comp (map make-transition-handler transitions))]
-        (register-handler trigger
-                          middleware
-                          handler)))))
+  [middleware {:keys [all-transitions] :as chart-data}]
+  (doseq [[trigger transition] all-transitions]
+    (let [handler (make-transition-handler trigger transition chart-data)]
+      (register-handler trigger
+                        middleware
+                        handler))))
 
 
 ;; MAIN ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -274,6 +258,9 @@
                     :all-transitions all-transitions
                     :all-states all-states
                     :all-start-states all-start-states}]
+
+    (let [app-start-state (some #(when (= (namespace %) (name :app)) %) all-start-states)]
+      (def start-app #(enter-state app-start-state [] chart-data)))
 
     (set-state-tree! state-machines)
     (init-active!)

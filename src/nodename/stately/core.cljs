@@ -120,7 +120,7 @@
   [fsm-name]
   (when fsm-name
     (let [all-active-states (:active @app-db)]
-      (first (filter #(= (namespace %) (name fsm-name)) all-active-states)))))
+      (some #(when (= (namespace %) (name fsm-name)) %) all-active-states))))
 
 
 (defn- leaf-states*
@@ -147,20 +147,8 @@
 
 
 
-(defn active-subcomponents
-  "all active subcomponents of a state, leaves first"
-  [state all-states]
-  (let [state-data (get all-states state)
-        components (:components state-data)
-        active-substates (map active-state components)
-        subcomponents (map #(active-subcomponents % all-states) active-substates)]
-    (flatten (concat subcomponents components))))
-
-
-
-
-
 ;; CLONE FSM ;;;;;;;;;;;;;;;;;;;;
+
 
 
 (defn- get-ns
@@ -174,12 +162,13 @@
     kw))
 
 (defn clone-fsm
-  "Make a copy of fsm, replacing its namespace everywhere with ns"
+  "Make a copy of fsm, replacing its namespace in every keyword with ns"
   [fsm ns]
   (let [selector (s/walker keyword?)
         orig-ns (get-ns fsm)
         transform-fn #(transform-kw % orig-ns ns)]
     (s/transform selector transform-fn fsm)))
+
 
 
 ;; DISPATCH ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -198,12 +187,6 @@
         (vec (concat [[new-state new-trigger]] (rest event-v)))))))
 
 
-(defn synthetic?
-  [event-v]
-  (let [name (name (second (first-in-vector event-v)))]
-    (= name "ENTRY-TRANSITION")))
-
-
 ;; TODO don't propagate up from multiple orthogonal components
 (defn dispatch
   "If a handler is registered for the event-id, call re-frame's dispatch;
@@ -215,10 +198,7 @@
       (warn "no handler found for event")
       (let [handler-fn (lookup-handler (first-in-vector event-v))]
         (if (nil? handler-fn)
-          (if (synthetic? event-v)
-            ;; don't propagate synthetic transition:
-            (warn "synthetic transition not registered")
-            (recur (super-event-v event-v)))
+          (recur (super-event-v event-v))
           (do
             (warn "active states: " (active-states))
             (warn "dispatching: " event-v)
@@ -237,11 +217,3 @@
             new-event-v (vec (concat [[leaf-state new-event-id]] (rest event-v)))]
         (dispatch new-event-v)))))
 
-
-(defn show-state-error
-  [[_ trigger] current-state]
-  (when (not= trigger :alert/on)
-    (dispatch [:alert/show-action {:title "State error"
-                                   :body (str "Transition " trigger
-                                              " could not be performed from state "
-                                              current-state)}])))
