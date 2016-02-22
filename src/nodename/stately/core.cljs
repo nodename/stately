@@ -68,7 +68,7 @@
 
 
 
-(defn- set-active
+(defn set-active!
   [state-key yesno]
   (swap! app-db update-in [:active] (if yesno conj disj) state-key))
 

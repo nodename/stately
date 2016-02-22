@@ -6,7 +6,7 @@
             [cljs.pprint :refer [pprint]]
             [nodename.stately.core :refer [dispatch
                                            init-active!
-                                           set-active active-state
+                                           set-active! active-state
                                            set-state-tree!
                                            lca-path]]))
 
@@ -94,19 +94,9 @@
     (flatten (concat subcomponents components))))
 
 
-(defn stop-activity-actions
-  [state-data]
-  (map stop-action (:activities state-data)))
-
-(defn all-exit-actions
-  [state all-states]
-  (let [state-data (get all-states state)]
-    (concat (stop-activity-actions state-data)
-            (:exit-actions state-data))))
-
 (defn stop-activities
   [state-data]
-  (let [actions (stop-activity-actions state-data)]
+  (let [actions (map stop-action (:activities state-data))]
     (doseq [action actions]
       (dispatch action)))) ;; TODO invoke directly
 
@@ -132,15 +122,11 @@
     (exit-all-substates state all-states)
     (stop-activities state-data)
     (perform-exit-actions state)
-    (set-active state false)))
+    (set-active! state false)))
 
 
 ;;; ENTER ;;;
 
-
-(defn start-activity-actions
-  [state-data]
-  (map start-action (:activities state-data)))
 
 (defn perform-entry-actions
   [state-data values]
@@ -150,7 +136,7 @@
 
 (defn start-activities
   [state-data]
-  (let [actions (start-activity-actions state-data)]
+  (let [actions (map start-action (:activities state-data))]
     (doseq [action actions]
       (dispatch action)))) ;; TODO invoke directly
 
@@ -167,7 +153,7 @@
 (defn enter-state
   [state values {:keys [all-states] :as chart-data}]
   (let [state-data (get all-states state)]
-    (set-active state true)
+    (set-active! state true)
     (perform-entry-actions state-data values)
     (start-activities state-data)
     (enter-components-start-states state chart-data)))
@@ -188,7 +174,7 @@
                  actions :actions
                  :or {actions []}} transition
 
-                ;; handle target that is a function:
+                ;; handle computed target:
                 target (if (fn? target)
                          (target db values)
                          target)
