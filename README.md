@@ -1,4 +1,4 @@
-# StateChart
+# Stately: StateCharts in the re-frame Environment
 
 ## Components
 
@@ -15,17 +15,12 @@ Arguments to the function may be provided by enclosing the function and argument
 
 ## Transitions
 
-A transition must specify start-states; it will not fire if the current state
-is not one of the start-states. Start-states may be specified as `:any` or `:none` if desired.
+A transition must specify a start-state. Its key in the handler map is a vector of start-state and trigger.
 
-The transition must also specify a target state. This may be identical to a start state.
-Or it may be specified as `:internal`, indicating no change of state.
+The transition must also specify a target state. This may be identical to its start state,
+or it may be specified as `:internal`, indicating no change of state.
 (An :internal transition will not invoke exit or entry actions of the state.)
 The target may also be a function that will yield the target state when the transition is invoked.
-(There are rare transitions whose target state cannot be determined until after the transition,
-such as popping the screen stack when a back button is pressed; in this case you must
-ensure that `complete-transition` is invoked.)
-
 A transition may also have actions; these are triggered when the transition takes place,
 and are invoked in the context of the target state.
 (These actions may in turn trigger other transitions.) If omitted, actions
@@ -34,27 +29,16 @@ defaults to `[]`.
 A transition may have a condition: a function that will prevent the transition
 from triggering if it returns a falsy value in the handler.
 A condition has the same signature as an event handler, but it does not return the new db.
-(Condition defaults to `(constantly true)`.)
+(Conditions default to `(constantly true)`.)
 
-Here's an example. Suppose we want to accept no passwords except 'boo'.
-We give the transition a vector of branches, each having its own condition, target,
-and actions.
-
+Here's an example from QuantumCalc. We have already accepted an operator, but we want to handle a negative second operand. From the :cal/op-entered state, we will accept another :operator-entered trigger and transition into the :operand2/int state, but only if the second operator is a minus:
 
 ```
-:signin/go-chosen {:start-states [:signin/start]
-                   :branches [{:condition (fn [db _]
-                                            (= (get-in db [:values :password]) "boo"))
-                               :target       :signin/in-progress
-                               :actions      [[:signin/start-action]]}
-
-                              {:target       :signin/forbidden}]}
+[:calc/op-entered :operator-entered] {:condition (fn [db [value]]
+                                                   (= value '-))
+                                      :target :operand2/int}
 ```
 
-The first branch whose condition evaluates to `true` will be executed.
-
-Any field of a transition that appears outside of the `:branches` is regarded as
-common to all the branches.
 
 ## States
 
@@ -82,10 +66,6 @@ start-states that will then be entered recursively.
 If a component specifies a start-state, when the component is entered,
 so will the start-state be entered.
 
-
-All keyword identifiers for actions, transitions, and states must be namespaced.
-We use the namespaces for the conceptual decomposition of our statechart
-into the various components. We also rely upon namespaces to implement event bubbling.
 
 Application code should not directly invoke action functions. It should only dispatch events.
 Actions are invoked by transitions in the same statechart component.
