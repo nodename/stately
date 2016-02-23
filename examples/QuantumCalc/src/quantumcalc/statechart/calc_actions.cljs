@@ -1,10 +1,10 @@
 (ns quantumcalc.statechart.calc-actions
   (:require [re-frame.utils :refer [log warn]]
-            [nodename.stately.core :refer [dispatch-to-leaves clone-fsm dispatch]]))
+            [nodename.stately.core :refer [dispatch-transition clone-fsm dispatch]]))
 
 (defn parse-button-press
   [db [key]]
-  (dispatch-to-leaves [(keyword (condp = key
+  (dispatch-transition [(keyword (condp = key
                                   '= "equals-entered"
                                   '+ "operator-entered"
                                   '- "operator-entered"

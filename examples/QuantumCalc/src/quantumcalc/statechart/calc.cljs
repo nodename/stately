@@ -18,7 +18,10 @@
 
           :transitions {[:app/on :cancel-entered] {:target :app/on
                                                    :actions [[:app/clear-inputs-action]
-                                                             [:calc/clear-result-action]]}}
+                                                             [:calc/clear-result-action]]}
+                        [:app/on :zero-entered] {:target :operand1/zero}
+                        [:app/on :digit-entered] {:target :operand1/int}
+                        [:app/on :dot-entered] {:target :operand1/frac}}
 
           :start-state :app/on
 
@@ -32,12 +35,7 @@
                     :calc/clear-result-action            clear-result
                     :calc/copy-result-to-operand1-action copy-result-to-operand1}
 
-          :transitions {[:calc/start :zero-entered] {:target :operand1/zero}
-                        [:calc/start :digit-entered] {:target :operand1/int}
-                        [:calc/start :dot-entered] {:target :operand1/frac}
-
-
-                        [:calc/operand1 :operator-entered] {:target :calc/op-entered
+          :transitions {[:calc/operand1 :operator-entered] {:target :calc/op-entered
                                                             :actions [[:calc/replace-operator-action]]}
 
 
@@ -64,10 +62,7 @@
                                                           :actions   [[:calc/copy-result-to-operand1-action]
                                                                       [:calc/replace-operator-action]]}}
 
-          :start-state :calc/start
-
-          :states {:calc/start      {}
-                   :calc/operand1   {:components [:operand1]}
+          :states {:calc/operand1   {:components [:operand1]}
                    :calc/op-entered {}
                    :calc/operand2   {:components [:operand2]}
                    :calc/result     {}}})

@@ -12,7 +12,7 @@
   []
   (swap! app-db assoc :active #{}))
 
-(defn state-tree
+(defn- state-tree
   [state-machines root-fsm-key]
   (let [;; component-keys: return the components of the state `state-key` in `fsm`
         component-keys (fn [state-key fsm]
@@ -32,7 +32,7 @@
                                     (keys root-fsm-states)))}))
 
 
-(defn parent-links
+(defn- parent-links
   [m root-key]
   (let [ks (keys m)
         kvs (interleave ks (repeat root-key))
@@ -40,7 +40,7 @@
         sub-kvs (map #(parent-links %1 %2) trees ks)]
     (flatten (concat kvs sub-kvs))))
 
-(defn parent-map
+(defn- parent-map
   [tree]
   (let [kvs (parent-links tree nil)]
     (apply assoc {} kvs)))
@@ -72,14 +72,30 @@
   [state-key yesno]
   (swap! app-db update-in [:active] (if yesno conj disj) state-key))
 
-(defn active?
-  [state-key]
-  ((get @app-db :active) state-key))
-
 (defn active-states
   []
-  (remove #(= (name %) "none") (get @app-db :active)))
+  (get @app-db :active))
 
+(defn active-state
+  [fsm]
+  (when fsm
+    (some #(when (= (namespace %) (name fsm)) %) (active-states))))
+
+(defn active?
+  [state-key]
+  ((active-states) state-key))
+
+(defn leaves-of-active
+  "Currently active states that have no currently active child states"
+  []
+  (loop [active (active-states)
+         leaves []]
+    (let [s (first active)]
+      (if (nil? s)
+        leaves
+        (let [child-of-s (some #(when (= s (super %)) %) (rest active))]
+          (recur (rest active)
+                 (if child-of-s [] [s])))))))
 
 
 
@@ -87,7 +103,7 @@
 
 
 
-(defn path-to-root
+(defn- path-to-root
   [state-kw]
   (if (nil? state-kw)
     []
@@ -109,41 +125,6 @@
                            (= (first exit) (first entrance)))
                     (recur (rest exit) (rest entrance))
                     [(reverse exit) entrance])))))
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-
-(defn active-state
-  [fsm-name]
-  (when fsm-name
-    (let [all-active-states (:active @app-db)]
-      (some #(when (= (namespace %) (name fsm-name)) %) all-active-states))))
-
-
-(defn- leaf-states*
-  [tree]
-  (let [children (keys tree)]
-    (loop [children children
-           leaf-nodes []]
-      (let [child (first children)
-            subtree (get tree child)]
-        (if child
-          (recur (rest children)
-                 (concat leaf-nodes (if subtree
-                                      (leaf-states* subtree)
-                                      [child])))
-          leaf-nodes)))))
-
-(defn leaf-states
-  []
-  (leaf-states* (tree)))
-
-(defn active-leaf-states
-  []
-  (filter active? (leaf-states)))
 
 
 
@@ -205,14 +186,12 @@
             (re-frame.core/dispatch event-v)))))))
 
 
-;; TODO this should become the default dispatch function
-(defn dispatch-to-leaves
+(defn dispatch-transition
+  "Dispatch transition to leaf active states"
   [event-v]
-  (warn "leaves: event-v: " event-v)
-  (warn "active: " (active-leaf-states))
-  (let [leaf-states (active-leaf-states)]
+  (let [event-id (first-in-vector event-v)
+        leaf-states (leaves-of-active)]
     (doseq [leaf-state leaf-states]
-      (let [event-id (first-in-vector event-v)
-            new-event-v (vec (concat [[leaf-state event-id]] (rest event-v)))]
+      (let [new-event-v (vec (concat [[leaf-state event-id]] (rest event-v)))]
         (dispatch new-event-v)))))
 
