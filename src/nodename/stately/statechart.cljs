@@ -47,9 +47,9 @@
 
 (defn register-activity-handlers
   [middleware {:keys [all-states all-activities] :as chart-data}]
-  (doseq [[trigger state] all-states]
+  (doseq [[_ state-data] all-states]
     (let [{activities :activities
-           :or {:activities []}} state]
+           :or {:activities []}} state-data]
       (doseq [activity activities]
         (let [{start :start
                stop :stop} (get all-activities activity)]
@@ -162,7 +162,6 @@
 (defn make-transition-handler
   [state-and-trigger transition {:keys [all-states] :as chart-data}]
   (fn handler [db & [values]]
-    (warn "state-and-trigger: " state-and-trigger)
     (let [[transition-state _] state-and-trigger
           fsm-name (namespace transition-state)
           current-state (active-state fsm-name)]
@@ -178,10 +177,8 @@
                 target (if (fn? target)
                          (target db values)
                          target)
-                _ (warn "target: " target)
 
                 [exit-path entry-path] (lca-path current-state target)
-                _ (warn "exit-path: " exit-path " entry-path: " entry-path)
 
                 ;; each action gets my values appended after any explicit values it carries:
                 actions (map #(if values
@@ -194,7 +191,7 @@
             (doseq [state entry-path]
               (enter-state state values chart-data))
 
-            ;; Unlike in the UML spec, actions are invoked in the context of the target state:
+            ;; Unlike in the UML spec, we invoke actions in the context of the target state:
             (doseq [action actions]
               (dispatch action))))
         db))))
@@ -219,14 +216,9 @@
   (let [f (fn [val0 val1] (error "Clobbering a handler! " val0 " " val1))]
     (apply merge-with f maps)))
 
-(defn- merge-with-concat
-  [& maps]
-  (let [f (fn [val0 val1] [val0 val1])]
-    (apply merge-with f maps)))
 
-
-(defn register-handlers
-  [middleware state-machines]
+(defn register-statechart
+  [middleware state-machines root-fsm-key]
   (let [fsms (vals state-machines)
         obtain (fn [prop]
                  (apply merge-no-clobber
@@ -234,8 +226,7 @@
 
         all-actions (obtain :actions)
         all-activities (obtain :activities)
-        all-transitions (apply merge-with-concat
-                               (map #(get % :transitions) fsms))
+        all-transitions (obtain :transitions)
         all-states (obtain :states)
         all-start-states (remove nil? (map #(get % :start-state) fsms))
 
@@ -245,10 +236,11 @@
                     :all-states all-states
                     :all-start-states all-start-states}]
 
-    (let [app-start-state (some #(when (= (namespace %) (name :app)) %) all-start-states)]
+    (let [app-start-state (some #(when (= (namespace %) (name root-fsm-key)) %) all-start-states)]
+      ;; provide start-app function to kick things off:
       (def start-app #(enter-state app-start-state [] chart-data)))
 
-    (set-state-tree! state-machines)
+    (set-state-tree! state-machines root-fsm-key)
     (init-active!)
 
     (register-action-handlers middleware chart-data)

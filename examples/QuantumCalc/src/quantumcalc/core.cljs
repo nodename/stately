@@ -5,7 +5,7 @@
             [re-frame.utils :refer [log warn]]
             [nodename.stately.statechart :refer [start-app]]
             [quantumcalc.ui.calc :refer [calc-screen]]
-            [quantumcalc.statechart.main :refer [register-handlers]]))
+            [quantumcalc.statechart.main :refer [register-statechart]]))
 
 
 (set! js/React (js/require "react-native/Libraries/react-native/react-native.js"))
@@ -15,7 +15,7 @@
 
 ;; Handlers
 
-(register-handlers)
+(register-statechart)
 
 
 ;; Rendering

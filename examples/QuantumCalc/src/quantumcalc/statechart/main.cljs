@@ -7,7 +7,7 @@
             [re-frame.core :as re-frame]))
 
 
-(defonce state-machines {;;:alert alert Alert out until bubbling from concurrent states is fixed
+(defonce state-machines {;;:alert alert ;; Alert out until bubbling from concurrent states is fixed
                          :app app
                          :calc calc
                          :operand1 operand1
@@ -19,6 +19,6 @@
   [re-frame/debug
    re-frame/trim-v])
 
-(defn register-handlers
+(defn register-statechart
   []
-  (statechart/register-handlers middleware state-machines))
+  (statechart/register-statechart middleware state-machines :app))

@@ -46,8 +46,8 @@
     (apply assoc {} kvs)))
 
 (defn set-state-tree!
-  [state-machines]
-  (let [tree (state-tree state-machines :app)
+  [state-machines root-fsm-key]
+  (let [tree (state-tree state-machines root-fsm-key)
         parents (parent-map tree)]
     (swap! app-db assoc
            :tree tree
@@ -162,9 +162,9 @@
         state (first event-id)
         trigger (second event-id)
         fsm-name (namespace state)
-        super-fsm-name (super (keyword fsm-name))]
-    (when super-fsm-name
-      (let [new-state (active-state super-fsm-name)]
+        super-fsm (super (keyword fsm-name))]
+    (when super-fsm
+      (let [new-state (active-state super-fsm)]
         (vec (concat [[new-state trigger]] (rest event-v)))))))
 
 
@@ -174,16 +174,12 @@
   otherwise, move up the state hierarchy and try again"
   [event-v]
   (loop [event-v event-v]
-    (warn "dispatch? " event-v)
     (if (nil? event-v)
-      (warn "no handler found for event")
+      (println "no handler found for event")
       (let [handler-fn (lookup-handler (first-in-vector event-v))]
         (if (nil? handler-fn)
           (recur (super-event-v event-v))
-          (do
-            (warn "active states: " (active-states))
-            (warn "dispatching: " event-v)
-            (re-frame.core/dispatch event-v)))))))
+          (re-frame.core/dispatch event-v))))))
 
 
 (defn dispatch-transition
