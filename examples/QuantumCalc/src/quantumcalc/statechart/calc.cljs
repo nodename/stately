@@ -1,6 +1,7 @@
 (ns quantumcalc.statechart.calc
-  (:require [re-frame.utils :refer [log warn]]
-            [nodename.stately.core :refer [clone-fsm dispatch]]
+  (:require [re-frame.core :refer [dispatch]]
+            [re-frame.utils :refer [log warn]]
+            [nodename.stately.core :refer [clone-fsm]]
             [quantumcalc.statechart.calc-actions :refer [parse-button-press
                                                          append-value clear-value
                                                          replace-operator

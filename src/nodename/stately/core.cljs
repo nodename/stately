@@ -1,11 +1,9 @@
 (ns nodename.stately.core
   (:require [clojure.string :refer [blank?]]
             [com.rpl.specter :as s]
-            [re-frame.core]
+            [re-frame.core :refer [dispatch]]
             [re-frame.db :refer [app-db]]
-            [re-frame.handlers :refer [lookup-handler]]
-            [re-frame.router :refer [event-queue]]
-            [re-frame.utils :refer [log warn error first-in-vector]]))
+            [re-frame.handlers :refer [lookup-handler]]))
 
 
 (defn init-active!
@@ -156,38 +154,27 @@
 
 
 
-(defn- super-event-v
-  [event-v]
-  (let [event-id (first-in-vector event-v)
-        state (first event-id)
-        trigger (second event-id)
-        fsm-name (namespace state)
-        super-fsm (super (keyword fsm-name))]
-    (when super-fsm
-      (let [new-state (active-state super-fsm)]
-        (vec (concat [[new-state trigger]] (rest event-v)))))))
-
-
-;; TODO don't propagate up from multiple orthogonal components
-(defn dispatch
-  "If a handler is registered for the event-id, call re-frame's dispatch;
-  otherwise, move up the state hierarchy and try again"
-  [event-v]
-  (loop [event-v event-v]
-    (if (nil? event-v)
-      (println "no handler found for event")
-      (let [handler-fn (lookup-handler (first-in-vector event-v))]
-        (if (nil? handler-fn)
-          (recur (super-event-v event-v))
-          (re-frame.core/dispatch event-v))))))
+(defn- bubble-up
+  "Find first ancestor state on which the transition [state trigger] is registered"
+  [state trigger]
+  (loop [state state]
+    (if (or (nil? state)
+            (lookup-handler [state trigger]))
+      state
+      (recur (super state)))))
 
 
 (defn dispatch-transition
-  "Dispatch transition to leaf active states"
+  "Bubble up the state hierarchy from the leaf active states
+  to states that implement the transition, and dispatch"
   [event-v]
-  (let [event-id (first-in-vector event-v)
-        leaf-states (leaves-of-active)]
-    (doseq [leaf-state leaf-states]
-      (let [new-event-v (vec (concat [[leaf-state event-id]] (rest event-v)))]
+  (let [trigger (first event-v)
+        bubble-states (->> (leaves-of-active)
+                           (map #(bubble-up % trigger))
+                           (remove #(nil? %))
+                           ;; remove duplicates:
+                           set)]
+    (doseq [state bubble-states]
+      (let [new-event-v (vec (concat [[state trigger]] (rest event-v)))]
         (dispatch new-event-v)))))
 

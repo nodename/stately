@@ -1,6 +1,7 @@
 (ns quantumcalc.statechart.calc-actions
-  (:require [re-frame.utils :refer [log warn]]
-            [nodename.stately.core :refer [dispatch-transition clone-fsm dispatch]]))
+  (:require [re-frame.core :refer [dispatch]]
+            [re-frame.utils :refer [log warn]]
+            [nodename.stately.core :refer [dispatch-transition clone-fsm]]))
 
 (defn parse-button-press
   [db [key]]

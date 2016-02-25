@@ -1,11 +1,7 @@
 (ns nodename.stately.statechart
-  (:require [clojure.string :refer [blank?]]
-            [re-frame.core :as re-frame :refer [register-handler]]
-            [re-frame.utils :refer [log warn error first-in-vector]]
-            [com.rpl.specter :as s]
-            [cljs.pprint :refer [pprint]]
-            [nodename.stately.core :refer [dispatch
-                                           init-active!
+  (:require [re-frame.core :refer [register-handler dispatch]]
+            [re-frame.utils :refer [error]]
+            [nodename.stately.core :refer [init-active!
                                            set-active! active-state
                                            set-state-tree!
                                            lca-path]]))
@@ -76,7 +72,7 @@
 
 (defn show-condition-not-met
   [trigger current-state condition]
-  (log (str "Transition " trigger
+  (println (str "Transition " trigger
             " in state " current-state
             " failed condition " condition)))
 
@@ -185,7 +181,8 @@
                                (vec (concat % values))
                                %) actions)]
 
-            ;; exiting the last state will take care of any preceding states in exit-path:
+            ;; exiting the last state will first exit all of its active substates,
+            ;; including any preceding states in exit-path:
             (exit-state (last exit-path) all-states)
 
             (doseq [state entry-path]

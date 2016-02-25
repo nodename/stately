@@ -1,5 +1,5 @@
 (ns quantumcalc.ui.alert
-  (:require [nodename.stately.core :refer [dispatch]]))
+  (:require [re-frame.core :refer [dispatch]]))
 
 
 (defn- alert

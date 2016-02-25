@@ -1,9 +1,9 @@
 (ns quantumcalc.ui.calc
   (:require [cljs.pprint :refer [pprint]]
             [reagent.ratom :refer-macros [reaction]]
-            [re-frame.core :refer [register-sub subscribe]]
+            [re-frame.core :refer [register-sub subscribe dispatch]]
             [re-frame.db :refer [app-db]]
-            [nodename.stately.core :refer [dispatch tree active-states]]
+            [nodename.stately.core :refer [tree active-states]]
             [quantumcalc.ui.styles :refer [styles]]
             [quantumcalc.ui.react-widgets :refer [button text view vspacer]]
             [quantumcalc.ui.colors :refer [blue]]))
@@ -12,10 +12,6 @@
 (register-sub :display
               (fn [db]
                 (reaction (:display @db))))
-
-(register-sub :alert
-              (fn [db]
-                (reaction (:message @db))))
 
 (register-sub :active
               (fn [db]
@@ -82,26 +78,10 @@
            :textStyle [(:txtMedium styles) {:color blue}]}
    "db"])
 
-(defn alert-view
-  [alert]
-  [view {:style {:flex 1
-                 :flexDirection "row"
-                 :alignItems "center"}}
-   [text {:style {:fontSize 18 :color "red" :borderColor "red"}}
-    (or (get-in @alert [:title]) " ")]
-   [button {:style [(:btnCenter styles) {:flex 1
-                                         :backgroundColor "white"
-                                         :borderRadius 5
-                                         :width 25
-                                         :marginHorizontal 5}]
-            :onPress #(dispatch [:alert/off])
-            :textStyle [(:txtMedium styles) {:color blue}]}
-    "x"]])
 
 (defn calc-screen
   []
-  (let [display (subscribe [:display])
-        alert (subscribe [:alert])]
+  (let [display (subscribe [:display])]
     (fn []
       [view {:style [(.-vertLayoutBkg styles) {:flex 1 :backgroundColor blue}]}
        [vspacer 40]
@@ -109,11 +89,7 @@
        [text {:style (.-titleH2 styles)}
         "QuantumCalc"]
 
-       [vspacer 20]
-
-       (alert-view alert)
-
-       [vspacer 50]
+       [vspacer 60]
 
        [text {:style {:fontSize 24 :color "white"}}
         (or (get-in @display [:value]) " ")]
