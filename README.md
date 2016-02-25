@@ -1,4 +1,7 @@
-# Stately: StateCharts in the re-frame Environment
+# Stately: StateCharts in Clojure/Script
+
+Stately is currently implemented using re-frame's event dispatcher and its app-db.
+This dependency can easily be removed by reimplementing those.
 
 ## Components
 
@@ -31,7 +34,10 @@ from triggering if it returns a falsy value in the handler.
 A condition has the same signature as an event handler, but it does not return the new db.
 (Conditions default to `(constantly true)`.)
 
-Here's an example from QuantumCalc. We have already accepted an operator, but we want to handle a negative second operand. From the :cal/op-entered state, we will accept another :operator-entered trigger and transition into the :operand2/int state, but only if the second operator is a minus:
+Here's an example from QuantumCalc. We have already accepted an operator, but we want to handle
+a negative second operand. From the :calc/op-entered state, we will accept another
+:operator-entered trigger and transition into the :operand2/int state,
+but only if the second operator is a minus:
 
 ```
 [:calc/op-entered :operator-entered] {:condition (fn [db [value]]

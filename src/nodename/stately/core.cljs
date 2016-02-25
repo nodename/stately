@@ -155,7 +155,7 @@
 
 
 (defn- bubble-up
-  "Find first ancestor state on which the transition [state trigger] is registered"
+  "Find first ancestor state for which the transition [state trigger] is registered"
   [state trigger]
   (loop [state state]
     (if (or (nil? state)
