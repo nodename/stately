@@ -93,7 +93,7 @@
         leaves
         (let [child-of-s (some #(when (= s (super %)) %) (rest active))]
           (recur (rest active)
-                 (if child-of-s [] [s])))))))
+                 (if child-of-s leaves (conj leaves s))))))))
 
 
 
