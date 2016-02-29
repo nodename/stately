@@ -3,7 +3,7 @@
             [reagent.ratom :refer-macros [reaction]]
             [re-frame.core :refer [register-sub subscribe dispatch]]
             [re-frame.db :refer [app-db]]
-            [nodename.stately.core :refer [tree active-states]]
+            [nodename.stately.tree :refer [tree]]
             [quantumcalc.ui.styles :refer [styles]]
             [quantumcalc.ui.react-widgets :refer [button text view vspacer]]
             [quantumcalc.ui.colors :refer [blue]]))
@@ -13,9 +13,9 @@
               (fn [db]
                 (reaction (:display @db))))
 
-(register-sub :active
+(register-sub :active-states
               (fn [db]
-                (reaction (:active @db))))
+                (reaction (:active-states @db))))
 
 
 (defn calc-button
@@ -42,7 +42,7 @@
 
 (defn active-states-labels
   []
-  (let [active (subscribe [:active])
+  (let [active (subscribe [:active-states])
         style (:txtMedium styles)
         active-states (remove #(= (name %) "none") @active)
         show-state (fn [fsm] [text {:style style}
@@ -74,7 +74,7 @@
                                          :borderRadius 10
                                          :width 50
                                          :marginHorizontal 5}]
-           :onPress #(pprint (dissoc @app-db :tree :active))
+           :onPress #(pprint (dissoc @app-db :tree :active-states :parents))
            :textStyle [(:txtMedium styles) {:color blue}]}
    "db"])
 

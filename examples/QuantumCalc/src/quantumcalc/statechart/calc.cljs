@@ -104,4 +104,4 @@
          {:actions {:keypad/button-pressed parse-button-press}})
 
 (defonce display
-         {:actions {:display/set-value set-display-value}})
+         {:actions {:display/set-value-action set-display-value}})

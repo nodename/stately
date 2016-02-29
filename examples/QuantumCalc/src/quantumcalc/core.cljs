@@ -3,22 +3,13 @@
 (ns quantumcalc.core
   (:require [reagent.core :as reagent]
             [re-frame.utils :refer [log warn]]
-            [nodename.stately.statechart :refer [start-app]]
             [quantumcalc.ui.calc :refer [calc-screen]]
-            [quantumcalc.statechart.main :refer [register-statechart]]))
+            [quantumcalc.statechart.main :refer [start-app]]))
 
 
 (set! js/React (js/require "react-native/Libraries/react-native/react-native.js"))
 
 (enable-console-print!)
-
-
-;; Handlers
-
-(register-statechart)
-
-
-;; Rendering
 
 
 (defn root []
@@ -29,7 +20,6 @@
   (reagent/render [root] 1))
 
 
-;; Main
 
 (defn app-entered-foreground []
   )
@@ -38,7 +28,7 @@
   )
 
 (defn on-reload []
-  #_(render-root!))
+  (render-root!))
 
 (defn ^:export init []
   (render-root!)

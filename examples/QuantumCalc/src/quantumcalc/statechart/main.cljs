@@ -1,5 +1,5 @@
 (ns quantumcalc.statechart.main
-  (:require [nodename.stately.statechart :as statechart]
+  (:require [nodename.stately.core :as stately]
             [quantumcalc.statechart.alert :refer [alert]]
             [quantumcalc.statechart.calc :refer [app calc
                                                  operand1 operand2
@@ -19,6 +19,6 @@
   [re-frame/debug
    re-frame/trim-v])
 
-(defn register-statechart
+(defn start-app
   []
-  (statechart/register-statechart middleware state-machines :app))
+  (stately/start-app middleware state-machines :app))
