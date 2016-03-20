@@ -18,7 +18,16 @@
 
   :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
 
-  :cljsbuild {:builds [{:id "quantumcalc"
+  :cljsbuild {:builds [{:id "toasteroven"
+                        :source-paths ["src" "examples/ToasterOven/src"]
+                        :compiler {:main toasteroven.core
+                                   output-to "examples/ToasterOven/target/out/main.js"
+                                   :output-dir "examples/ToasterOven/target/out"
+                                   :optimizations :none
+                                   :source-map true
+                                   :source-map-timestamp true}}
+
+                       {:id "quantumcalc" ;; React Native app for iOS
                         :source-paths ["src" "examples/QuantumCalc/src"]
                         :compiler {:main quantumcalc.core
                                    :output-to "examples/QuantumCalc/target/out/main.js"
