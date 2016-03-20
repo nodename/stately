@@ -19,7 +19,7 @@
 
 
 
-(defn register-action-handlers
+(defn- register-action-handlers
   [middleware {:keys [all-actions] :as chart-data}]
   (doseq [[trigger action] all-actions]
     (let [handler (if (fn? action)
@@ -48,7 +48,7 @@
   (keyword (namespace activity)
            (str (name activity) ".STOP-ACTION")))
 
-(defn register-activity-handlers
+(defn- register-activity-handlers
   [middleware {:keys [all-states all-activities] :as chart-data}]
   (doseq [[_ state-data] all-states]
     (let [{activities :activities
@@ -159,7 +159,8 @@
     (let [f (fn [active-states component]
               (let [start-state (get-start-state component all-start-states)]
                 (if start-state
-                  (enter-state start-state [] active-states chart-data)
+                  (enter-state start-state
+                               [] active-states chart-data)
                   active-states)))]
       (reduce f active-states components))))
 
@@ -192,6 +193,8 @@
                        (target db values)
                        target)
 
+              [exit-path entry-path] (lca-path current-state target)
+
               ;; each action gets my values appended after any explicit values it carries:
               actions (map #(if values
                              (vec (concat % values))
@@ -199,14 +202,13 @@
 
               active-states (get db :active-states)
 
-              [exit-path entry-path] (lca-path current-state target)
-
               ;; exiting the last state will first exit all of its active substates,
               ;; including any preceding states in exit-path:
               active-states (exit-state (last exit-path) all-states active-states)
 
               active-states (reduce (fn [active-states state]
-                                      (enter-state state values active-states chart-data))
+                                      (enter-state state
+                                                   values active-states chart-data))
                                     active-states
                                     entry-path)]
 
@@ -219,10 +221,21 @@
 
 
 
-(defn register-transition-handlers
+(defn- register-transition-handlers
   [middleware {:keys [all-transitions] :as chart-data}]
   (doseq [[trigger transition] all-transitions]
     (let [handler (make-transition-handler trigger transition chart-data)]
       (register-handler trigger
                         middleware
                         handler))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+(defn register-statechart
+  [middleware chart-data]
+  (register-action-handlers middleware chart-data)
+  (register-activity-handlers middleware chart-data)
+  (register-transition-handlers  middleware chart-data))

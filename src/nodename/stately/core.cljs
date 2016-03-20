@@ -9,10 +9,9 @@
                                            set-active-states!
                                            set-state-tree!]]
             [nodename.stately.chart :refer [get-start-state
-                                                 enter-state
-                                                 register-action-handlers
-                                                 register-activity-handlers
-                                                 register-transition-handlers]]))
+                                            enter-state
+                                            register-statechart]]))
+
 
 
 ;; CLONE FSM ;;;;;;;;;;;;;;;;;;;;
@@ -59,7 +58,7 @@
 
 
 (defn- bubble-up
-  "Find first ancestor state for which the transition [state trigger] is registered"
+  "Find first ancestor state for which the transition key [state trigger] is registered"
   [state trigger]
   (loop [state state]
     (if (or (nil? state)
@@ -116,10 +115,9 @@
                     :all-states all-states
                     :all-start-states all-start-states}]
 
-    (register-action-handlers middleware chart-data)
-    (register-activity-handlers middleware chart-data)
-    (register-transition-handlers  middleware chart-data)
+    (register-statechart middleware chart-data)
 
     (let [app-start-state (get-start-state root-fsm-key all-start-states)
-          active-states (enter-state app-start-state [] #{} chart-data)]
+          active-states (enter-state app-start-state
+                                     [] #{} chart-data)]
       (set-active-states! active-states))))
