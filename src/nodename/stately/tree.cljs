@@ -1,5 +1,5 @@
 (ns nodename.stately.tree
-  (:require [re-frame.db :refer [app-db]]))
+  (:require [nodename.stately.comms :refer [app-db]]))
 
 
 ;; TREE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -88,8 +88,8 @@
 
 
 (defn lca-path
-  "Return states-to-exit and states-to-enter
-  to get from from-state to to-state
+  "Return states-to-exit and states-to-enter,
+  which constitute the path from from-state to to-state
   via least common ancestor"
   [from-state to-state]
   (cond (= :internal to-state) [[] []]

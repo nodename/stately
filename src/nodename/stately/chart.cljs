@@ -1,5 +1,5 @@
 (ns nodename.stately.chart
-  (:require [re-frame.core :refer [register-handler dispatch]]
+  (:require [nodename.stately.comms :refer [register-handler dispatch]]
             [nodename.stately.tree :refer [lca-path]]))
 
 

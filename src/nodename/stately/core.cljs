@@ -1,9 +1,7 @@
 (ns nodename.stately.core
   (:require [clojure.string :refer [blank?]]
             [com.rpl.specter :as s]
-            [re-frame.core :refer [dispatch]]
-            [re-frame.utils :refer [error]]
-            [re-frame.handlers :refer [lookup-handler]]
+            [nodename.stately.comms :refer [dispatch run-queue error lookup-handler]]
             [nodename.stately.tree :refer [super
                                            active-states
                                            set-active-states!
@@ -120,4 +118,6 @@
     (let [app-start-state (get-start-state root-fsm-key all-start-states)
           active-states (enter-state app-start-state
                                      [] #{} chart-data)]
-      (set-active-states! active-states))))
+      (set-active-states! active-states)))
+
+  (run-queue))
