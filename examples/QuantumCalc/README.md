@@ -1,7 +1,5 @@
 # QuantumCalc
 
-[![Circle CI](https://circleci.com/gh/glassplan/glass.svg?style=svg&circle-token=87e63de595c9f6bc7bf37ecf03ae970fe8530e06)](https://circleci.com/gh/glassplan/glass)
-
 ## Requirements
 
 * Java 1.8
@@ -33,8 +31,10 @@ From Emacs:
 
 With Xcode:
 
-* `open ios/GlassPlanner.xcworkspace`
+* `open ios/QuantumCalc.xcodeproj`
 * Product > Run
+
+The app will run in the simulator.
 
 From the command line:
 

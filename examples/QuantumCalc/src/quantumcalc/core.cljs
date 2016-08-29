@@ -2,7 +2,7 @@
 
 (ns quantumcalc.core
   (:require [reagent.core :as reagent]
-            [re-frame.utils :refer [log warn]]
+            [nodename.stately.comms :refer [log warn use-re-frame!]]
             [quantumcalc.ui.calc :refer [calc-screen]]
             [quantumcalc.statechart.main :refer [start-app]]))
 
@@ -11,6 +11,7 @@
 
 (enable-console-print!)
 
+(use-re-frame! false)
 
 (defn root []
   calc-screen)

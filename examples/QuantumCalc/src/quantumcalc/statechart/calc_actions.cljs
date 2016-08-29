@@ -1,6 +1,5 @@
 (ns quantumcalc.statechart.calc-actions
-  (:require [re-frame.core :refer [dispatch]]
-            [re-frame.utils :refer [log warn]]
+  (:require [nodename.stately.comms :refer [dispatch log warn]]
             [nodename.stately.core :refer [dispatch-transition]]))
 
 (defn parse-button-press

@@ -1,8 +1,8 @@
 (ns quantumcalc.ui.calc
   (:require [cljs.pprint :refer [pprint]]
             [reagent.ratom :refer-macros [reaction]]
-            [re-frame.core :refer [register-sub subscribe dispatch]]
-            [re-frame.db :refer [app-db]]
+            [re-frame.core :refer [register-sub subscribe]]
+            [nodename.stately.comms :refer [dispatch app-db]]
             [nodename.stately.tree :refer [tree]]
             [quantumcalc.ui.styles :refer [styles]]
             [quantumcalc.ui.react-widgets :refer [button text view vspacer]]
