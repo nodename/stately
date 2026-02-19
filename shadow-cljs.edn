@@ -5,6 +5,7 @@
                 "examples/ProcessFlow/src"
                 "examples/LightingSystem/src"
                 "examples/Player/src"
+                "examples/CoffeeMaker/src"
                 "examples/Dining/src"]
 
  :dependencies [[reagent "2.0.1"]
@@ -48,6 +49,12 @@
                        :asset-path "target/out"
                        :modules    {:main {:init-fn player.core/init}}
                        :devtools   {:after-load player.core/on-reload}}
+
+          :coffeemaker {:target     :browser
+                       :output-dir "examples/CoffeeMaker/target/out"
+                       :asset-path "target/out"
+                       :modules    {:main {:init-fn coffeemaker.core/init}}
+                       :devtools   {:after-load coffeemaker.core/on-reload}}
 
           :dining      {:target    :browser
                         :output-dir "examples/Dining/target/out"
