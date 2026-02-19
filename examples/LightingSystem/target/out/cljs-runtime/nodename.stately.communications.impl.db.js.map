@@ -1,0 +1,1 @@
+{"version":3,"sources":["nodename/stately/communications/impl/db.cljs"],"mappings":";AAGA,AAAKA,iDAAOC","names":["nodename.stately.communications.impl.db/app-db","re-frame.db/app-db"],"sourcesContent":["(ns nodename.stately.communications.impl.db\n  (:require  [re-frame.db :as rdb]))\n\n(def app-db rdb/app-db)"]}

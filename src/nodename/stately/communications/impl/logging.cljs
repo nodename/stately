@@ -35,5 +35,6 @@
 (defn log      [& args] ((:log @loggers)      (apply str args)))
 (defn warn     [& args] ((:warn @loggers)     (apply str args)))
 (defn group    [& args] ((:group @loggers)    (apply str args)))
-(defn groupEnd [& args] ((:groupEnd @loggers) (apply str args)))
+(defn groupEnd
+  [& args] ((:groupEnd @loggers) (apply str args)))
 (defn error    [& args] ((:error @loggers)    (apply str args)))

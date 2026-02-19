@@ -1,8 +1,7 @@
 (ns nodename.stately.communications.impl.router
-  (:require [cljs.core.async :refer [put! >! <! chan]]
+  (:require [cljs.core.async :refer [put! >! <! chan go alt!]]
             [nodename.stately.communications.impl.logging :refer [warn error]]
-            [nodename.stately.communications.impl.handlers :refer [handle]])
-  (:require-macros [cljs.core.async.macros :refer [go alt!]]))
+            [nodename.stately.communications.impl.handlers :refer [handle]]))
 
 
 (def event-queue (chan))

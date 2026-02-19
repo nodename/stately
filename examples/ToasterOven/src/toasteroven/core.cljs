@@ -1,42 +1,24 @@
 (ns toasteroven.core
-  (:require [reagent.core :as reagent]
-            [re-frame.utils :refer [log warn]]
-            [toasteroven.ui.calc :refer [calc-screen]]
+  (:require ["react-dom/client" :refer [createRoot]]
+            [reagent.core :as reagent]
+            [nodename.stately.comms :refer [use-re-frame!]]
+            [toasteroven.ui.app :refer [app-screen]]
             [toasteroven.statechart.main :refer [start-app]]))
 
 (enable-console-print!)
 
+(defonce root (createRoot (.getElementById js/document "app")))
 
-(defn root []
-  calc-screen)
+(defn mount-root
+  []
+  (.render root (reagent/as-element [app-screen])))
 
-(defn render-root! []
-  (println "render-root!")
-  (reagent/render [root] 1))
+(defn on-reload
+  []
+  (mount-root))
 
-
-
-(defn app-entered-foreground []
-  )
-
-(defn app-entered-background []
-  )
-
-(defn on-reload []
-  (render-root!))
-
-(defn ^:export init []
-  (render-root!)
-  (start-app)
-
-  (.addEventListener
-    js/React.AppStateIOS "change"
-    (fn [state]
-      (case state
-        "active" (app-entered-foreground)
-        "background" (app-entered-background)))))
-
-(defonce setup
-         (do
-           (init)
-           true))
+(defn ^:export init
+  []
+  (use-re-frame! true)
+  (mount-root)
+  (start-app))

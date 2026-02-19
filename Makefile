@@ -1,15 +1,9 @@
-# figwheel
-
-# first run fig in one terminal:
-
-fig:
-	rlwrap lein figwheel
+NPM = npm
+NPMX = $(NPM) exec --
+SHADOW = $(NPMX) shadow-cljs
 
 
-# packager in another terminal:
+watch: 
+	@echo "Using env var TFR_DEV=${TFR_DEV}"
+	$(SHADOW) watch app
 
-packager:
-	react-native start
-
-
-# then launch the app using Xcode.

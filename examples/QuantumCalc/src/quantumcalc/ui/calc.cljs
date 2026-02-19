@@ -1,112 +1,102 @@
 (ns quantumcalc.ui.calc
   (:require [cljs.pprint :refer [pprint]]
-            [reagent.ratom :refer-macros [reaction]]
-            [re-frame.core :refer [register-sub subscribe]]
+            [re-frame.core :refer [reg-sub subscribe]]
             [nodename.stately.comms :refer [dispatch app-db]]
             [nodename.stately.tree :refer [tree]]
-            [quantumcalc.ui.styles :refer [styles]]
-            [quantumcalc.ui.react-widgets :refer [button text view vspacer]]
-            [quantumcalc.ui.colors :refer [blue]]))
+            [cljs.user :refer [show-active-states]]))
 
+(reg-sub :display      (fn [db _] (:display db)))
+(reg-sub :active-states (fn [db _] (:active-states db)))
 
-(register-sub :display
-              (fn [db]
-                (reaction (:display @db))))
+(def blue "#66aef2")
 
-(register-sub :active-states
-              (fn [db]
-                (reaction (:active-states @db))))
+(def button-style
+  {:margin "4px"
+   :padding "8px 0"
+   :font-size "20px"
+   :flex 1
+   :cursor "pointer"
+   :border "none"
+   :border-radius "6px"
+   :background "white"
+   :color blue})
 
+(def small-button-style
+  {:padding "4px 10px"
+   :margin-right "6px"
+   :cursor "pointer"
+   :font-size "12px"})
 
 (defn calc-button
   [char]
-  [button {:style [(.-btnCenter styles) {:flex 1
-                                         :backgroundColor "white"
-                                         :borderRadius 10
-                                         :width 40
-                                         :marginHorizontal 5}]
-           :onPress #(dispatch [:keypad/button-pressed char])
-           :textStyle [(:txtMedium styles) {:color blue}]}
+  [:button {:style button-style
+            :on-click #(dispatch [:keypad/button-pressed char])}
    (str char)])
 
-(defn four-button-row
+(defn button-row
   [& chars]
-  [view {:style {:flex 1
-                 :flexDirection "row"
-                 :alignItems "center"}}
-   (calc-button (first chars))
-   (calc-button (second chars))
-   (calc-button (second (rest chars)))
-   (calc-button (last chars))])
-
+  [:div {:style {:display "flex" :margin-bottom "6px"}}
+   (for [c chars]
+     ^{:key (str c)} [calc-button c])])
 
 (defn active-states-labels
   []
-  (let [active (subscribe [:active-states])
-        style (:txtMedium styles)
-        active-states (remove #(= (name %) "none") @active)
-        show-state (fn [fsm] [text {:style style}
-                              (str (or (first (filter #(= (namespace %) fsm)
-                                                      active-states))
-                                       ""))])]
-    [view
-     (show-state "app")
-     (show-state "calc")
-     (show-state "operand1")
-     (show-state "operand2")
-     (show-state "alert")]))
-
-(defn tree-button
-  []
-  [button {:style [(.-btnCenter styles) {:flex 1
-                                         :backgroundColor "white"
-                                         :borderRadius 10
-                                         :width 50
-                                         :marginHorizontal 5}]
-           :onPress #(pprint (tree))
-           :textStyle [(:txtMedium styles) {:color blue}]}
-   "tree"])
-
-(defn db-button
-  []
-  [button {:style [(.-btnCenter styles) {:flex 1
-                                         :backgroundColor "white"
-                                         :borderRadius 10
-                                         :width 50
-                                         :marginHorizontal 5}]
-           :onPress #(pprint (dissoc @app-db :tree :active-states :parents))
-           :textStyle [(:txtMedium styles) {:color blue}]}
-   "db"])
-
+  (let [active (subscribe [:active-states])]
+    (fn []
+      (let [active-states (remove #(= (name %) "none") @active)
+            show-state    (fn [fsm]
+                            [:div {:key fsm :style {:font-size "12px"}}
+                             (str (or (first (filter #(= (namespace %) fsm)
+                                                     active-states))
+                                      ""))])]
+        [:div
+         (show-state "app")
+         (show-state "calc")
+         (show-state "operand1")
+         (show-state "operand2")]))))
 
 (defn calc-screen
   []
   (let [display (subscribe [:display])]
     (fn []
-      [view {:style [(.-vertLayoutBkg styles) {:flex 1 :backgroundColor blue}]}
-       [vspacer 40]
+      [:div {:style {:font-family "monospace"
+                     :max-width "320px"
+                     :margin "40px auto"
+                     :background blue
+                     :padding "24px"
+                     :border-radius "10px"}}
 
-       [text {:style (.-titleH2 styles)}
+       [:h1 {:style {:color "white"
+                     :text-align "center"
+                     :font-size "28px"
+                     :margin "0 0 16px"}}
         "QuantumCalc"]
 
-       [vspacer 60]
+       [:div {:style {:font-size "24px"
+                      :min-height "40px"
+                      :background "white"
+                      :padding "8px 12px"
+                      :border-radius "6px"
+                      :text-align "right"
+                      :margin-bottom "12px"}}
+        (or (get-in @display [:value]) "\u00a0")]
 
-       [text {:style {:fontSize 24 :color "white"}}
-        (or (get-in @display [:value]) " ")]
+       [:div {:style {:margin-bottom "12px"}}
+        [button-row 'C]
+        [button-row 7 8 9 '+]
+        [button-row 4 5 6 '-]
+        [button-row 1 2 3 'x]
+        [button-row 0 '. '= '/]]
 
-       [vspacer 20]
-
-       [view
-        (calc-button 'C)
-        (four-button-row 7 8 9 '+)
-        (four-button-row 4 5 6 '-)
-        (four-button-row 1 2 3 'x)
-        (four-button-row 0 '. '= '/)]
-
-       [vspacer 40]
-
-       [view
-        (active-states-labels)
-        [vspacer 20]
-        (tree-button)
-        (db-button)]])))
+       [:div {:style {:color "white"}}
+        [active-states-labels]
+        [:div {:style {:margin-top "8px"}}
+         [:button {:style small-button-style
+                   :on-click #(pprint (tree))}
+          "statechart"]
+         [:button {:style small-button-style
+                   :on-click #(pprint (dissoc @app-db :tree :active-states :parents))}
+          "db"]
+         [:button {:style small-button-style
+                   :on-click show-active-states}
+          "active states"]]]])))

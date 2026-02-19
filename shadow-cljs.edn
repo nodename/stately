@@ -1,0 +1,55 @@
+{:source-paths ["src"
+                "examples/ToasterOven/src"
+                "examples/QuantumCalc/src"
+                "examples/LightSwitch/src"
+                "examples/ProcessFlow/src"
+                "examples/LightingSystem/src"
+                "examples/Player/src"
+                "examples/Dining/src"]
+
+ :dependencies [[reagent "2.0.1"]
+                [re-frame "1.4.4"]
+                [com.rpl/specter "1.1.6"]]
+
+ :nrepl {:port 7000}
+
+ :builds {:toasteroven {:target     :browser
+                           :output-dir "examples/ToasterOven/target/out"
+                           :asset-path "target/out"
+                           :modules    {:main {:init-fn toasteroven.core/init}}
+                           :devtools   {:after-load toasteroven.core/on-reload}}
+
+          :quantumcalc {:target     :browser
+                           :output-dir "examples/QuantumCalc/target/out"
+                           :asset-path "target/out"
+                           :modules    {:main {:init-fn quantumcalc.core/init}}
+                           :devtools   {:after-load quantumcalc.core/on-reload}}
+
+          :lightswitch {:target     :browser
+                           :output-dir "examples/LightSwitch/target/out"
+                           :asset-path "target/out"
+                           :modules    {:main {:init-fn lightswitch.core/init}}
+                           :devtools   {:after-load lightswitch.core/on-reload}}
+
+          :processflow {:target     :browser
+                           :output-dir "examples/ProcessFlow/target/out"
+                           :asset-path "target/out"
+                           :modules    {:main {:init-fn processflow.core/init}}
+                           :devtools   {:after-load processflow.core/on-reload}}
+
+          :lightingsystem {:target     :browser
+                              :output-dir "examples/LightingSystem/target/out"
+                              :asset-path "target/out"
+                              :modules    {:main {:init-fn lightingsystem.core/init}}
+                              :devtools   {:after-load lightingsystem.core/on-reload}}
+
+          :player  {:target     :browser
+                       :output-dir "examples/Player/target/out"
+                       :asset-path "target/out"
+                       :modules    {:main {:init-fn player.core/init}}
+                       :devtools   {:after-load player.core/on-reload}}
+
+          :dining      {:target    :browser
+                        :output-dir "examples/Dining/target/out"
+                        :asset-path "/out"
+                        :modules   {:main {:init-fn dining.core/init}}}}}

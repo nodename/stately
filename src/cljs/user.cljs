@@ -12,6 +12,6 @@
   []
   (pprint (get @app-db :tree)))
 
-(defn active
+(defn show-active-states
   []
   (println (get @app-db :active-states)))

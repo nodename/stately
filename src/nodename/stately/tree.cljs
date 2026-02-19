@@ -18,7 +18,7 @@
                                       (component-keys state-key fsm)))
 
         key-and-components (fn [state-key fsm]
-                             {state-key (apply merge (component-state-trees state-key fsm))})
+                             {state-key (apply merge {} (component-state-trees state-key fsm))})
 
         root-fsm (get state-machines root-fsm-key)
         root-fsm-states (:states root-fsm)]

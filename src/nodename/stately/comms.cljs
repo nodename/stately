@@ -50,14 +50,20 @@
     (set-standalone-comms!)))
 
 
-(defn dispatch [event-v] ((:dispatch @comms) event-v))
-(defn run-queue [] ((:run-queue @comms)))
+(defn dispatch
+  [event-v] ((:dispatch @comms) event-v))
+(defn run-queue
+  [] ((:run-queue @comms)))
 (defn register-handler
   ([id handler]
    ((:register-handler @comms) id handler))
   ([id middleware handler]
    ((:register-handler @comms) id middleware handler)))
-(defn lookup-handler [event-id] ((:lookup-handler @comms) event-id))
-(defn log [& args] ((:log @comms) [args]))
-(defn warn [& args] ((:warn @comms) [args]))
-(defn error [& args] ((:error @comms) [args]))
+(defn lookup-handler
+  [event-id] ((:lookup-handler @comms) event-id))
+(defn log
+  [& args] ((:log @comms) [args]))
+(defn warn
+  [& args] ((:warn @comms) [args]))
+(defn error
+  [& args] ((:error @comms) [args]))

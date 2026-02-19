@@ -52,7 +52,7 @@
   [middleware {:keys [all-states all-activities] :as chart-data}]
   (doseq [[_ state-data] all-states]
     (let [{activities :activities
-           :or {:activities []}} state-data]
+           :or {activities []}} state-data]
       (doseq [activity activities]
         (let [{start :start
                stop :stop} (get all-activities activity)]
@@ -127,7 +127,7 @@
   (let [state-data (get all-states state)
         active-states (exit-all-substates state all-states active-states)]
     (stop-activities state-data)
-    (perform-exit-actions state)
+    (perform-exit-actions state-data)
     (set-active active-states state false)))
 
 

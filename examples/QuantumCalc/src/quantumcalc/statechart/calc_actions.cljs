@@ -1,5 +1,6 @@
 (ns quantumcalc.statechart.calc-actions
-  (:require [nodename.stately.comms :refer [dispatch log warn]]
+  (:require [cljs.reader]
+            [nodename.stately.comms :refer [dispatch log warn]]
             [nodename.stately.core :refer [dispatch-transition]]))
 
 (defn parse-button-press
@@ -33,22 +34,15 @@
   [db [field]]
   (dissoc db field))
 
-(defn read-string
-  "Ignore leading zeroes to avoid reading number as octal;
-  prepend a zero to strings with leading dot"
-  [s]
-  (let [s (clojure.string/replace-first s #"0*" "")
-        s (clojure.string/replace-first s #"^\." "0.")]
-    (cljs.reader/read-string s)))
-
 (defn calculate-result
   [db]
-  (let [op1 (read-string (get-in db [:operand1/value]))
-        op2 (read-string (get-in db [:operand2/value]))
+  (let [op1      (js/parseFloat (get-in db [:operand1/value]))
+        op2      (js/parseFloat (get-in db [:operand2/value]))
         operator (get {"+" + "-" - "x" * "/" /} (get-in db [:operator]))
-        result (operator op1 op2)]
-    (dispatch [:display/set-value-action (str result)])
-    (assoc db :result (str result))))
+        result   (operator op1 op2)
+        result-str (str (js/parseFloat (.toPrecision result 10)))]
+    (dispatch [:display/set-value-action result-str])
+    (assoc db :result result-str)))
 
 (defn clear-result
   [db]

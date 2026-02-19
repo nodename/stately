@@ -1,3 +1,0 @@
-                        [:calc/op-entered :operator-entered] {:condition (fn [db [value]]            ;; neg2
-                                                                           (= value '-))             ;;
-                                                              :target :operand2/int}                 ;;

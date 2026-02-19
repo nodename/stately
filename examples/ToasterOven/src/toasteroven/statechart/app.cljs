@@ -1,26 +1,22 @@
-(ns toasteroven.statechart.app
-  (:require [re-frame.core :refer [dispatch]]
-            [re-frame.utils :refer [log warn]]))
+(ns toasteroven.statechart.app)
 
 (defonce app
-         {:actions     {:heater-on (fn [db] (assoc db :heater :on))
-                        :heater-off (fn [db] (assoc db :heater :off))}
+  {:actions     {:heater-on  (fn [db] (assoc db :heater :on))
+                 :heater-off (fn [db] (assoc db :heater :off))}
 
-          :transitions {[:heating :open-door] {:target :door-open}
-                        [:door-open :close-door] {:target :heating}
+   :transitions {[:app/heating      :open-door]  {:target :app/door-open}
+                 [:app/door-open    :close-door] {:target :app/heating}
+                 [:heating/toasting :bake]       {:target :heating/baking}
+                 [:heating/baking   :toast]      {:target :heating/toasting}}
 
-                        [:heating :toast] {:target :toasting}
-                        [:heating :bake] {:target :baking}}
+   :start-state :app/heating
 
-          :start-state ::heating
-
-          :states      {:heating {:entry-actions [[:heater-on]]
-                                  :exit-actions [[:heater-off]]
-                                  :components [:heating]}
-                        :door-open {}}})
+   :states      {:app/heating  {:entry-actions [[:heater-on]]
+                                :exit-actions  [[:heater-off]]
+                                :components    [:heating]}
+                 :app/door-open {}}})
 
 (defonce heating
-         {:states {:toasting {}
-                   :baking {}}
-
-          :start-state :toasting})
+  {:states      {:heating/toasting {}
+                 :heating/baking   {}}
+   :start-state :heating/toasting})

@@ -1,22 +1,22 @@
 (defproject stately "0.1.0"
-  :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/clojurescript "1.7.228"]
-                 [reagent "0.5.1" :exclusions [cljsjs/react]]
-                 [re-frame "0.6.0" :exclusions [reagent]]
-                 [com.rpl/specter "0.9.1"]]
+  :dependencies [[org.clojure/clojure "1.12.4"]
+                 [org.clojure/clojurescript "1.12.134"]
+                 [reagent "2.0.1" :exclusions [cljsjs/react]]
+                 [re-frame "1.4.4" :exclusions [reagent]]
+                 [com.rpl/specter "1.1.6"]]
 
   :test-paths ["examples"]
 
-  :plugins [[lein-cljsbuild "1.1.1"]
-            [lein-doo "0.1.6"]
-            [lein-figwheel "0.5.0-2"]]
+  :plugins [[lein-cljsbuild "1.1.8"]
+            [lein-doo "0.1.10"]
+            [lein-figwheel "0.5.20"]]
 
   :profiles {:dev
-             {:dependencies [[com.cemerick/piggieback "0.2.1"]
-                             [lein-figwheel "0.5.0-2"]
-                             [figwheel-sidecar "0.5.0-2"]]}}
+             {:dependencies [[cider/piggieback "0.6.1"]
+                             [lein-figwheel "0.5.20"]
+                             [figwheel-sidecar "0.5.20"]]}}
 
-  :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
+  :repl-options {:nrepl-middleware [cider.piggieback/wrap-cljs-repl]}
 
   :cljsbuild {:builds [{:id "toasteroven"
                         :source-paths ["src" "examples/ToasterOven/src"]
