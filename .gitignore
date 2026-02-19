@@ -3,3 +3,6 @@
 .idea
 figwheel_server.log
 *.iml
+target/
+.shadow-cljs/
+node_modules/

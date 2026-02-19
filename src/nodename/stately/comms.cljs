@@ -1,18 +1,18 @@
 (ns nodename.stately.comms
   (:require [nodename.stately.communications.standalone-api :as st]
-            [nodename.stately.communications.re-frame-api :as rf]
+            [nodename.stately.communications.re-frame-api :as rfi]
             [clojure.set :refer [difference]]))
 
 
 (def re-frame-comms
-  {:dispatch rf/dispatch
-   :run-queue #()
-   :register-handler rf/register-handler
-   :lookup-handler rf/lookup-handler
-   :log rf/log
-   :warn rf/warn
-   :error rf/error
-   :app-db rf/app-db})
+  {:dispatch         rfi/dispatch
+   :run-queue        #()
+   :register-handler rfi/register-handler
+   :lookup-handler   rfi/lookup-handler
+   :log              rfi/log
+   :warn             rfi/warn
+   :error            rfi/error
+   :app-db           rfi/app-db})
 
 (def standalone-comms
   {:dispatch st/dispatch
