@@ -1,4 +1,5 @@
 {:source-paths ["src"
+                "dev"
                 "examples/ToasterOven/src"
                 "examples/QuantumCalc/src"
                 "examples/LightSwitch/src"
