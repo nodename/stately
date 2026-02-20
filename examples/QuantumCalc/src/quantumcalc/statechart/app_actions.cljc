@@ -1,7 +1,7 @@
-(ns quantumcalc.statechart.calc-actions
-  (:require [cljs.reader]
-            [nodename.stately.comms :refer [dispatch log warn]]
-            [nodename.stately.core :refer [dispatch-transition]]))
+(ns quantumcalc.statechart.app-actions
+  (:require [nodename.stately.comms :refer [dispatch log warn]]
+            [nodename.stately.core :refer [dispatch-transition]]
+            [nodename.stately.util :refer [parse-number format-precision]]))
 
 (defn parse-button-press
   [db [key]]
@@ -36,11 +36,11 @@
 
 (defn calculate-result
   [db]
-  (let [op1      (js/parseFloat (get-in db [:operand1/value]))
-        op2      (js/parseFloat (get-in db [:operand2/value]))
+  (let [op1      (parse-number (get-in db [:operand1/value]))
+        op2      (parse-number (get-in db [:operand2/value]))
         operator (get {"+" + "-" - "x" * "/" /} (get-in db [:operator]))
         result   (operator op1 op2)
-        result-str (str (js/parseFloat (.toPrecision result 10)))]
+        result-str (format-precision result 10)]
     (dispatch [:display/set-value-action result-str])
     (assoc db :result result-str)))
 

@@ -1,5 +1,6 @@
 (ns lightingsystem.statechart.app
-  (:require [nodename.stately.core :refer [dispatch-transition]]))
+  (:require [nodename.stately.core :refer [dispatch-transition]]
+            [nodename.stately.util :refer [after]]))
 
 (defonce lighting
          {:actions     {:light-on         (fn [db] (assoc db :light :on :brightness 100))
@@ -31,20 +32,12 @@
          {:actions     {:motion-light-on     (fn
                                                [db]
                                                (assoc db :light :on :brightness 80))
-                        :start-motion-timer  (fn
-                                               [db]
-                                               (let [id (js/setTimeout
-                                                          #(dispatch-transition [:timer-expired])
-                                                          5000)]
-                                                 (assoc db :motion-timer-id id)))
-                        :cancel-motion-timer (fn
-                                               [db]
-                                               (js/clearTimeout (:motion-timer-id db))
-                                               (dissoc db :motion-timer-id))}
+                        :start-motion-timer  (fn [db]
+                                               (after 5000 #(dispatch-transition [:timer-expired]))
+                                               db)}
           :transitions {[:motion/idle :motion-detected] {:target :motion/active}
                         [:motion/active :timer-expired] {:target :motion/idle}}
           :start-state :motion/idle
           :states      {:motion/idle   {:entry-actions [[:light-off]]}
                         :motion/active {:entry-actions [[:motion-light-on]
-                                                        [:start-motion-timer]]
-                                        :exit-actions  [[:cancel-motion-timer]]}}})
+                                                        [:start-motion-timer]]}}})

@@ -1,11 +1,12 @@
 # ToasterOven
 
-Demonstrates **composite states and event bubbling**.
+Demonstrates **composite states with an idle substate**.
 
-A toaster oven with a door and two heating modes (Toast, Bake). Opening the door interrupts heating regardless of which mode is active.
+A toaster oven with a door and two heating modes (Toast, Bake). The oven starts idle with the heater off. Opening the door interrupts any mode; closing it returns to idle.
 
 ## Statechart features
 
-- **Composite states**: the `:heating` state has a `:components` child FSM with `:toasting` and `:baking` substates
-- **Event bubbling**: the `:open-door` transition is defined on the parent `:heating` state and is triggered from either substate
-- Entry/exit actions on the parent state control the heater element
+- **Composite states**: `:app/heating` has a `:heating` component FSM with three substates: `:heating/off`, `:heating/toasting`, and `:heating/baking`
+- **Idle substate**: `:heating/off` is the start state of the component — the heater stays off until Toast or Bake is selected
+- **Leaf-state transitions**: `:open-door` is registered on each leaf state individually, since transitions must be on leaf states when changing siblings
+- Entry/exit actions on `:heating/toasting` and `:heating/baking` control the heater element

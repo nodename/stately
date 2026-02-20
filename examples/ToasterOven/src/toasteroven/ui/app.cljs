@@ -38,6 +38,7 @@
   (let [door-open?  (contains? active :app/door-open)
         toasting?   (contains? active :heating/toasting)
         baking?     (contains? active :heating/baking)
+        idle?       (contains? active :heating/off)
         heating?    (= :on heater)]
     [:div {:style {:border        (str "6px solid " brown)
                    :border-radius "12px"
@@ -72,19 +73,21 @@
 
 (defn app-screen
   []
-  (let [active (subscribe [:active-states])
+  (let [active-states (subscribe [:active-states])
         heater (subscribe [:heater])]
     (fn []
-      (let [door-open? (contains? @active :app/door-open)
-            toasting?  (contains? @active :heating/toasting)
-            baking?    (contains? @active :heating/baking)]
+      (let [door-open? (contains? @active-states :app/door-open)
+            toasting?  (contains? @active-states :heating/toasting)
+            baking?    (contains? @active-states :heating/baking)
+            heating?   (or toasting? baking?)]
+
         [:div {:style {:font-family "sans-serif"
                        :max-width   "360px"
                        :margin      "40px auto"
                        :text-align  "center"}}
          [:h1 {:style {:color brown}} "ToasterOven"]
 
-         [oven-display @active @heater]
+         [oven-display @active-states @heater]
 
          [:div {:style {:margin-top "16px"}}
           [btn "Open Door"  :open-door  {:disabled? door-open?}]
@@ -92,7 +95,8 @@
 
          [:div
           [btn "Toast" :toast {:disabled? (or door-open? toasting?)}]
-          [btn "Bake"  :bake  {:disabled? (or door-open? baking?)}]]
+          [btn "Bake"  :bake  {:disabled? (or door-open? baking?)}]
+          [btn "Off"   :stop  {:disabled? (not heating?)}]]
 
          [:div {:style {:margin-top "20px"}}
           [:button {:style small-button-style
@@ -102,5 +106,5 @@
                     :on-click #(pprint (dissoc @app-db :tree :active-states :parents))}
            "db"]
           [:button {:style small-button-style
-                    :on-click #(active)}
+                    :on-click show-active-states}
            "active states"]]]))))

@@ -43,16 +43,10 @@
 (defn- leaves-of-active
   "Currently active states that have no currently active child states"
   []
-  (loop [active (active-states)
-         leaves []]
-    (let [s (first active)]
-      (if (nil? s)
-        leaves
-        (let [s-has-child? (some #(= s (super %)) (rest active))]
-          (recur (rest active)
-                 (if s-has-child?
-                   leaves
-                   (conj leaves s))))))))
+  (let [all-active (active-states)]
+    (filterv (fn [s]
+               (not-any? #(= s (super %)) (disj all-active s)))
+             all-active)))
 
 
 (defn- bubble-up

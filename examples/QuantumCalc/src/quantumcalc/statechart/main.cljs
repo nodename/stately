@@ -1,6 +1,6 @@
 (ns quantumcalc.statechart.main
   (:require [nodename.stately.core :as stately]
-            [quantumcalc.statechart.calc :refer [app calc operand1 operand2 keypad display]]
+            [quantumcalc.statechart.app :refer [app calc operand1 operand2 keypad display]]
             [re-frame.core :as re-frame]))
 
 (defonce state-machines {:app      app

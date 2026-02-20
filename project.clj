@@ -19,7 +19,7 @@
   :repl-options {:nrepl-middleware [cider.piggieback/wrap-cljs-repl]}
 
   :cljsbuild {:builds [{:id "toasteroven"
-                        :source-paths ["src" "examples/ToasterOven/src"]
+                        :source-paths ["src" "dev" "examples/ToasterOven/src"]
                         :compiler {:main toasteroven.core
                                    output-to "examples/ToasterOven/target/out/main.js"
                                    :output-dir "examples/ToasterOven/target/out"
@@ -28,7 +28,7 @@
                                    :source-map-timestamp true}}
 
                        {:id "quantumcalc" ;; React Native app for iOS
-                        :source-paths ["src" "examples/QuantumCalc/src"]
+                        :source-paths ["src" "dev'" "examples/QuantumCalc/src"]
                         :compiler {:main quantumcalc.core
                                    :output-to "examples/QuantumCalc/target/out/main.js"
                                    :output-dir "examples/QuantumCalc/target/out"
@@ -40,7 +40,7 @@
                                    :debug false}}
 
                        {:id "dining"
-                        :source-paths ["src" "examples/Dining/src"]
+                        :source-paths ["src" "dev" "examples/Dining/src"]
                         :compiler {:main dining.core
                                    :output-to "examples/Dining/target/out/main.js"
                                    :output-dir "examples/Dining/target/out"
