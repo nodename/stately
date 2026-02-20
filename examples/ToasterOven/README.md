@@ -8,5 +8,4 @@ A toaster oven with a door and two heating modes (Toast, Bake). The oven starts 
 
 - **Composite states**: `:app/heating` has a `:heating` component FSM with three substates: `:heating/off`, `:heating/toasting`, and `:heating/baking`
 - **Idle substate**: `:heating/off` is the start state of the component — the heater stays off until Toast or Bake is selected
-- **Leaf-state transitions**: `:open-door` is registered on each leaf state individually, since transitions must be on leaf states when changing siblings
 - Entry/exit actions on `:heating/toasting` and `:heating/baking` control the heater element
