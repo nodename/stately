@@ -81,3 +81,10 @@ This principle applies within the statechart itself: a transition should not
 invoke actions of a different component, but it can invoke a different component's
 transition as though it were an action. (Transitions and actions are registered
 in the same way; re-frame does not know the difference.)
+
+## Building and Running the example apps
+
+```
+shadow-cljs compile toasteroven lightswitch player coffeemaker processflow quantumcalc lightingsystem 2>&1
+```
+then open each index.html in the browser.
