@@ -1,7 +1,7 @@
 (ns lightswitch.ui.app
   (:require [cljs.pprint :refer [pprint]]
             [re-frame.core :refer [reg-sub subscribe]]
-            [nodename.stately.comms :refer [app-db]]
+            [nodename.stately.comms :refer [get-app-db]]
             [nodename.stately.core :refer [dispatch-transition]]
             [nodename.stately.tree :refer [tree]]
             [cljs.user :refer [show-active-states]]))
@@ -61,7 +61,7 @@
                     :on-click #(pprint (tree))}
            "statechart"]
           [:button {:style small-button-style
-                    :on-click #(pprint (dissoc @app-db :tree :active-states :parents))}
+                    :on-click #(pprint (dissoc @(get-app-db) :tree :active-states :parents))}
            "db"]
           [:button {:style small-button-style
                     :on-click show-active-states}

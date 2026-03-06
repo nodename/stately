@@ -25,15 +25,17 @@
    :app-db st/app-db})
 
 (def comms (atom standalone-comms))
-(def app-db (:app-db @comms))
+
+(defn get-app-db
+  []
+  (:app-db @comms))
 
 (defn set-comms!
   "Change the set (subset?) of comms functions used by stately.
   'new-comms' should be a map which looks like default-comms"
   [new-comms]
   (assert (empty? (difference (set (keys new-comms)) (set (keys standalone-comms)))) "Unknown keys in new-comms")
-  (swap! comms merge new-comms)
-  (def app-db (:app-db @comms)))
+  (swap! comms merge new-comms))
 
 (defn set-re-frame-comms!
   []
